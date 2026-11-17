@@ -222,8 +222,11 @@ final class MusicPlayer {
 
     void playWave(WaveBatch batch) {
         if (roomFollowing || batch.tracks.isEmpty() || !api.waveActive(batch.session)) return;
+        boolean newStation = wave != batch.session;
         wave = batch.session;
         queue = List.copyOf(batch.tracks);
+        if (newStation) api.waveFeedback(wave, "radioStarted", queue.getFirst().id(), 0);
+        WaveDiagnostics.log("queue loaded count=" + queue.size() + " ids=" + WaveDiagnostics.ids(queue));
         select(0);
     }
 
@@ -248,15 +251,23 @@ final class MusicPlayer {
 
     void previous() {
         if (elapsedMs() > 3_000) select(index);
-        else if (hasPrevious()) select(index - 1);
+        else if (hasPrevious()) {
+            if (wave != null && track() != null && api.waveActive(wave))
+                api.waveFeedback(wave, "skip", track().id(), elapsedMs());
+            select(index - 1);
+        }
     }
 
     void next() { next(true); }
 
     private void next(boolean manual) {
+        if (wave != null && track() != null)
+            WaveDiagnostics.log("next manual=" + manual + " track=" + WaveHistory.trackKey(track().id())
+                + " remaining=" + upcomingCount());
         // Only explicit skips are recorded here. Natural track endings are
         // still handled by heardAudio(), preserving the old playback behavior.
         if (manual && wave != null && track() != null && api.waveActive(wave)) {
+            api.waveFeedback(wave, "skip", track().id(), elapsedMs());
             if (wave.seeded()) seededHistory = seededHistory.heard(track().id());
             else settings.rememberWaveSkip(wave.accountId(), track().id());
         }
@@ -280,6 +291,8 @@ final class MusicPlayer {
         index = position;
         var track = queue.get(position);
         start(new Playback(track, 0, false, new TrackAudio(track), 0));
+        if (wave != null && api.waveActive(wave))
+            api.waveFeedback(wave, "trackStarted", track.id(), 0);
     }
 
     private void start(Playback selected) {
@@ -321,6 +334,11 @@ final class MusicPlayer {
         current = null;
         if (failure != null) {
             error = failure;
+        } else if (wave != null && api.waveActive(wave) && !roomFollowing) {
+            api.waveFeedback(wave, "trackFinished", playback.track.id(), playback.positionMs());
+        }
+        if (failure != null) {
+            // Keep the existing playback failure and do not advance.
         } else if (roomFollowing) {
             return;
         } else if (settings.repeat == MusicSettings.Repeat.TRACK) {
@@ -350,7 +368,10 @@ final class MusicPlayer {
         }, message -> {
             if (request != continuationRequest) return;
             continuation = null;
-            if (api.waveActive(session)) error = message;
+            if (api.waveActive(session)) {
+                WaveDiagnostics.log("continuation error=" + message.replaceAll("[\r\n]", " "));
+                error = message;
+            }
         });
     }
 

@@ -31,6 +31,8 @@ import java.util.Base64;
 import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.LinkedHashSet;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -50,6 +52,8 @@ final class MusicApi {
     private final String device = UUID.randomUUID().toString();
     private final ReentrantLock refreshLock = new ReentrantLock();
     private volatile Session session;
+    // Batch identifier is required to report real playback feedback to Rotor.
+    private final ConcurrentHashMap<String, String> waveBatches = new ConcurrentHashMap<>();
 
     record DeviceCode(String code, String deviceCode, long expiresAt, int interval) {
         @Override public String toString() { return "DeviceCode"; }
@@ -322,29 +326,80 @@ final class MusicApi {
         String startCursor = cursor;
         WaveDiagnostics.log("wave request previous=" + previous + " cursor=" + startCursor + " history=" + history.recent().size());
         try {
-            List<Track> selected = history.pick(c -> waveTracks(expected, wave, c), excluded, startCursor);
+            List<Track> selected = history.pick(c -> waveTracks(expected, wave, history, c), excluded, startCursor);
             if (selected.isEmpty()) throw new IOException("Моя волна не предложила другой трек. Попробуйте позже.");
             WaveDiagnostics.log("wave selected count=" + selected.size() + " ids=" + WaveDiagnostics.ids(selected));
             return selected;
         } catch (HttpError rejectedCursor) {
             if (startCursor.isEmpty() || rejectedCursor.status != 400 && rejectedCursor.status != 404)
                 throw rejectedCursor;
-            List<Track> selected = history.pick(c -> waveTracks(expected, wave, c), excluded, "");
+            List<Track> selected = history.pick(c -> waveTracks(expected, wave, history, c), excluded, "");
             if (selected.isEmpty()) throw new IOException("Моя волна не предложила другой трек. Попробуйте позже.");
             WaveDiagnostics.log("wave selected count=" + selected.size() + " ids=" + WaveDiagnostics.ids(selected));
             return selected;
         }
     }
 
-    private List<Track> waveTracks(Session expected, WaveSession wave, String cursor) throws Exception {
-        String after = cursor.isEmpty() ? "" : "&queue=" + encode(cursor);
-        JsonElement response = result("/rotor/station/" + wave.station() + "/tracks?settings2=True" + after, expected);
-        List<Track> result = tracks(array(objectResponse(response), "sequence"));
+    private List<Track> waveTracks(Session expected, WaveSession wave, WaveHistory history, String cursor) throws Exception {
+        // Rotor accepts a QUEUE of played tracks. Passing only the previous track
+        // repeatedly gives the same five recommendations (confirmed by live logs).
+        LinkedHashSet<String> played = new LinkedHashSet<>();
+        for (String id : history.recent()) {
+            if (id.matches("[0-9]{1,24}") && played.size() < 24) played.add(id);
+        }
+        if (cursor != null && cursor.matches("[0-9]{1,24}")) played.add(cursor);
+        StringBuilder path = new StringBuilder("/rotor/station/").append(wave.station())
+            .append("/tracks?settings2=True");
+        for (String id : played) path.append("&queue=").append(encode(id));
+        JsonObject response = objectResponse(result(path.toString(), expected));
+        String batch = string(response, "batchId");
+        List<Track> result = tracks(array(response, "sequence"));
         List<Track> filtered = wave.seeded() ? result.stream()
             .filter(track -> !WaveHistory.trackKey(track.id()).equals(wave.seed)).toList() : result;
-        WaveDiagnostics.log("page cursor=" + cursor + " count=" + filtered.size()
+        if (!batch.isEmpty()) {
+            for (Track track : filtered) waveBatches.put(WaveHistory.trackKey(track.id()), batch);
+        }
+        WaveDiagnostics.log("page cursor=" + cursor + " queueCount=" + played.size()
+            + " batchPresent=" + !batch.isEmpty() + " count=" + filtered.size()
             + " ids=" + WaveDiagnostics.ids(filtered));
         return filtered;
+    }
+
+    /** Best-effort authentic feedback; never blocks the audio/UI thread. */
+    void waveFeedback(WaveSession wave, String type, String trackId, long playedMs) {
+        if (!waveActive(wave) || !List.of("radioStarted", "trackStarted", "trackFinished", "skip").contains(type)) return;
+        String id = WaveHistory.trackKey(trackId);
+        if (!type.equals("radioStarted") && !id.matches("[0-9]{1,24}")) return;
+        Session expected = session;
+        String batch = waveBatches.getOrDefault(id, "");
+        Thread.ofVirtual().name("kingmusic-wave-feedback").start(() -> {
+            try {
+                Session current = currentSession(expected);
+                if (current.token.expiresAt() - System.currentTimeMillis() < 120_000) current = refresh(current);
+                BuildTrust.requireOfficial();
+                JsonObject body = new JsonObject();
+                body.addProperty("type", type);
+                body.addProperty("timestamp", System.currentTimeMillis());
+                if (!type.equals("radioStarted")) {
+                    body.addProperty("trackId", id);
+                    if (type.equals("trackFinished") || type.equals("skip"))
+                        body.addProperty("totalPlayedSeconds", Math.max(0, playedMs) / 1000.0);
+                } else body.addProperty("from", "kingmusic-fabric");
+                String path = "/rotor/station/" + wave.station() + "/feedback"
+                    + (batch.isEmpty() ? "" : "?batch-id=" + encode(batch));
+                HttpRequest request = request(API, path)
+                    .header("Authorization", "OAuth " + current.token.access())
+                    .header("Accept-Language", "ru")
+                    .header("Content-Type", "application/json")
+                    .POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(body), StandardCharsets.UTF_8)).build();
+                var reply = MusicHttp.send(http, request, MusicHttp.text(65_536), 15);
+                WaveDiagnostics.log("feedback type=" + type + " track=" + id
+                    + " batchPresent=" + !batch.isEmpty() + " status=" + reply.statusCode());
+            } catch (Exception failure) {
+                WaveDiagnostics.log("feedback failure type=" + type + " error="
+                    + failure.getClass().getSimpleName());
+            }
+        });
     }
 
     List<CollectionItem> collection(Account account, boolean albums) throws Exception {
