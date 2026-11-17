@@ -1,5 +1,5 @@
 # King Music official release files
-80e8d33a4f4d437a8667a1ecf512f63ed75317c96d6d5befa9f3925d6bd5675c  King-Music-0.5.16-Fabric-26.2.jar
+471bd3416b21a46e7d94977bf5dcd4147fe5e13fb2ab6480de50409ad514aad9  King-Music-0.5.16-Fabric-26.2.jar
 8f3c8a4e4ed3472567e1eb0f6e335ac46026a586712ba147287419cf05ce94f1  King-Music-0.5.15-Fabric-26.2.jar
 3c877f9e961d9f00f8da6f0b0c485a4c548e67bd53f5c4b2017e00b7fb200f81  King-Music-Lyrics-0.1.5-Fabric-26.2.jar
 5db859b00c04c90011be48f87cc591251b7b711d542bdeb3f65dd423cf973c51  King-Music-Together-0.2.1-Fabric-26.2.jar

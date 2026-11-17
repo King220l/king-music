@@ -78,18 +78,29 @@ record WaveHistory(String account, List<String> recent) {
         String cur = trackKey(current);
         List<MusicApi.Track> pool = new ArrayList<>();
         String cursor = from == null ? "" : from;
-        java.util.Set<String> used = new java.util.HashSet<>();
-        List<MusicApi.Track> page = fetch.get(cursor);
-        used.add(cursor);
-        pool.addAll(page);
-        for (int i = 0; i < MAX_EXTRA_PAGES && !hasNew(pool, cur); i++) {
+        java.util.Set<String> usedCursors = new java.util.HashSet<>();
+        java.util.Set<String> pageSignatures = new java.util.HashSet<>();
+        java.util.Set<String> unique = new java.util.HashSet<>();
+        // Fetch additional pages even if the first page has fresh songs: otherwise
+        // a small station page (typically 5-6 tracks) repeats on every continuation.
+        for (int i = 0; i <= MAX_EXTRA_PAGES; i++) {
+            if (!usedCursors.add(cursor)) break;
+            List<MusicApi.Track> page = fetch.get(cursor);
             if (page.isEmpty()) break;
+            String signature = page.stream().map(t -> trackKey(t.id())).distinct()
+                .collect(java.util.stream.Collectors.joining(","));
+            if (!pageSignatures.add(signature)) break;
+            int added = 0;
+            for (MusicApi.Track track : page) {
+                if (unique.add(trackKey(track.id()))) { pool.add(track); added++; }
+            }
+            if (added == 0) break;
             String last = trackKey(page.getLast().id());
-            if (last.isEmpty() || last.equals(cur) || !used.add(last)) break;
-            page = fetch.get(last);
-            pool.addAll(page);
+            if (last.isEmpty() || last.equals(cur) || usedCursors.contains(last)) break;
+            cursor = last;
         }
-        if (choose(pool, cur).isEmpty() && used.add("")) {
+        // A restart is only useful if there were no usable candidates at all.
+        if (choose(pool, cur).isEmpty() && usedCursors.add("")) {
             pool.addAll(fetch.get(""));
         }
         return choose(pool, cur);

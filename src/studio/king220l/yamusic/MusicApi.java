@@ -320,15 +320,18 @@ final class MusicApi {
         // already occur in the account's recent history.
         String excluded = previous.isEmpty() ? history.latest() : previous;
         String startCursor = cursor;
+        WaveDiagnostics.log("wave request previous=" + previous + " cursor=" + startCursor + " history=" + history.recent().size());
         try {
             List<Track> selected = history.pick(c -> waveTracks(expected, wave, c), excluded, startCursor);
             if (selected.isEmpty()) throw new IOException("Моя волна не предложила другой трек. Попробуйте позже.");
+            WaveDiagnostics.log("wave selected count=" + selected.size() + " ids=" + WaveDiagnostics.ids(selected));
             return selected;
         } catch (HttpError rejectedCursor) {
             if (startCursor.isEmpty() || rejectedCursor.status != 400 && rejectedCursor.status != 404)
                 throw rejectedCursor;
             List<Track> selected = history.pick(c -> waveTracks(expected, wave, c), excluded, "");
             if (selected.isEmpty()) throw new IOException("Моя волна не предложила другой трек. Попробуйте позже.");
+            WaveDiagnostics.log("wave selected count=" + selected.size() + " ids=" + WaveDiagnostics.ids(selected));
             return selected;
         }
     }
@@ -337,7 +340,11 @@ final class MusicApi {
         String after = cursor.isEmpty() ? "" : "&queue=" + encode(cursor);
         JsonElement response = result("/rotor/station/" + wave.station() + "/tracks?settings2=True" + after, expected);
         List<Track> result = tracks(array(objectResponse(response), "sequence"));
-        return wave.seeded() ? result.stream().filter(track -> !WaveHistory.trackKey(track.id()).equals(wave.seed)).toList() : result;
+        List<Track> filtered = wave.seeded() ? result.stream()
+            .filter(track -> !WaveHistory.trackKey(track.id()).equals(wave.seed)).toList() : result;
+        WaveDiagnostics.log("page cursor=" + cursor + " count=" + filtered.size()
+            + " ids=" + WaveDiagnostics.ids(filtered));
+        return filtered;
     }
 
     List<CollectionItem> collection(Account account, boolean albums) throws Exception {
