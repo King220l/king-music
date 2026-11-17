@@ -1,0 +1,7 @@
+JLayer 1.0.1 MP3 decoder by JavaZoom, GNU LGPL 2.1 or later.
+The unmodified decoder classes are included. The corresponding source is at:
+https://repo.maven.apache.org/maven2/javazoom/jlayer/1.0.1/jlayer-1.0.1-sources.jar
+See LGPL-2.1.txt.
+
+PT Sans by ParaType is distributed under the SIL Open Font License.
+See OFL-PT-Sans.txt.

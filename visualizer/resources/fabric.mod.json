@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "king_music_visualizer",
+  "version": "0.1.1",
+  "name": "King Music Visualizer",
+  "description": "Пять режимов визуализации музыки для King Music. Автор King220l.",
+  "authors": ["King220l"],
+  "license": "MIT",
+  "icon": "assets/king_music_visualizer/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "king_music_visualizer": ["studio.king220l.yamusic.VisualizerAddon"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "yamusic": ">=0.5.9 <0.6.0",
+    "minecraft": "=26.2",
+    "java": ">=25"
+  }
+}
+

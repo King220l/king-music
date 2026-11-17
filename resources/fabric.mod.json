@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "yamusic",
+  "version": "0.5.14",
+  "name": "King Music",
+  "description": "Сделано King220l. Музыкальный плеер для Minecraft с локальной фонотекой, Яндекс Музыкой, историей, перемоткой, HUD и горячими клавишами.",
+  "authors": ["King220l"],
+  "license": "MIT",
+  "icon": "assets/yamusic/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["studio.king220l.yamusic.MusicMod"]
+  },
+  "mixins": ["yamusic.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "minecraft": "=26.2",
+    "java": ">=25"
+  },
+  "breaks": { "king_music_together": "<0.2.0" }
+}

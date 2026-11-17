@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "id": "king_music_lyrics",
+  "version": "0.1.5",
+  "name": "King Music Lyrics",
+  "description": "Дополнение King220l. Синхронные тексты Яндекс Музыки и редактор LRC для локальных песен.",
+  "authors": ["King220l"],
+  "license": "MIT",
+  "icon": "assets/king_music_lyrics/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "king_music_lyrics": ["studio.king220l.yamusic.LyricsAddon"]
+  },
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "yamusic": ">=0.5.11 <0.6.0",
+    "minecraft": "=26.2",
+    "java": ">=25"
+  }
+}

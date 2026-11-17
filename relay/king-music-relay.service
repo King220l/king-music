@@ -1,0 +1,30 @@
+[Unit]
+Description=King Music beta relay
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+Environment=KING_MUSIC_HOST=127.0.0.1 KING_MUSIC_PORT=3876
+Environment=NODE_OPTIONS=--max-old-space-size=48
+ExecStart=/usr/bin/node /opt/king-music-relay/server.mjs
+Restart=on-failure
+RestartSec=4
+MemoryHigh=80M
+MemoryMax=112M
+CPUQuota=20%
+TasksMax=32
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+RestrictRealtime=yes
+SystemCallArchitectures=native
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

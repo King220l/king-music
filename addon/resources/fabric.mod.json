@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "king_music_together",
+  "version": "0.2.1",
+  "name": "King Music Together",
+  "description": "Дополнение King220l. Комнаты Яндекс Музыки через Minecraft и значки игроков в TAB.",
+  "authors": ["King220l"],
+  "license": "MIT",
+  "icon": "assets/king_music_together/icon.png",
+  "environment": "client",
+  "entrypoints": {
+    "king_music_extension": ["studio.king220l.yamusic.TogetherAddon"]
+  },
+  "mixins": ["king_music_together.mixins.json"],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "yamusic": ">=0.5.8 <0.6.0",
+    "minecraft": "=26.2",
+    "java": ">=25"
+  }
+}
