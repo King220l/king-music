@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "yamusic",
-  "version": "0.5.15",
+  "version": "0.5.16",
   "name": "King Music",
   "description": "Сделано King220l. Музыкальный плеер для Minecraft с локальной фонотекой, Яндекс Музыкой, историей, перемоткой, HUD и горячими клавишами.",
   "authors": ["King220l"],

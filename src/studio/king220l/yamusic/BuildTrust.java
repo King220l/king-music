@@ -135,11 +135,14 @@ final class BuildTrust {
     }
 
     private static String coreVersion(byte[] manifest) throws IOException {
+        String latest = "";
         for (String filename : parse(manifest).keySet()) {
             var match = java.util.regex.Pattern.compile("King-Music-([0-9]+(?:\\.[0-9]+)*)-Fabric-26\\.2\\.jar").matcher(filename);
-            if (match.matches()) return match.group(1);
+            if (match.matches() && (latest.isEmpty() || newer(match.group(1), latest))) {
+                latest = match.group(1);
+            }
         }
-        return "";
+        return latest;
     }
 
     private static String installedVersion() {

@@ -337,7 +337,18 @@ final class MusicApi {
         }
         String exclude = previous.isEmpty() ? history.latest() : previous;
         List<Track> selected = history.choose(received, exclude);
-        if (selected.isEmpty()) throw new IOException("Яндекс пока не вернул следующие треки для Моей волны.");
+        // A Wave station may return a stale page after rapid skips. Follow the
+        // response tail up to twice before giving up, without looping forever.
+        for (int attempt = 0; selected.isEmpty() && attempt < 2; attempt++) {
+            String tail = received.isEmpty() ? "" : WaveHistory.trackKey(received.getLast().id());
+            if (tail.isEmpty() || tail.equals(cursor)) break;
+            cursor = tail;
+            List<Track> more = waveTracks(expected, wave, cursor);
+            if (more.isEmpty()) break;
+            received = more;
+            selected = history.choose(received, exclude);
+        }
+        if (selected.isEmpty()) throw new IOException("Моя волна пока не нашла новых треков. Попробуйте позже.");
         return selected;
     }
 

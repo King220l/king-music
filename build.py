@@ -106,11 +106,34 @@ def main():
         ]
     official = ROOT / "official"
     official.mkdir(exist_ok=True)
-    artifacts = [target, *addons]
+    # Preserve verified hashes of previously published files: changing them
+    # would incorrectly flag existing users' installed add-ons as unofficial.
+    # This release only publishes a new core JAR, not rebuilt add-ons.
+    manifest_path = official / "manifest.txt"
+    entries = {}
+    if manifest_path.is_file():
+        for line in manifest_path.read_text(encoding="utf-8").splitlines():
+            if not line.strip() or line.startswith("#"):
+                continue
+            digest, filename = line.split("  ", 1)
+            if not (len(digest) == 64 and all(c in "0123456789abcdef" for c in digest)):
+                raise ValueError("Invalid existing release hash")
+            if not filename.startswith("King-Music-") or not filename.endswith(".jar"):
+                raise ValueError("Invalid existing release filename")
+            entries[filename] = digest
+    if target.name in entries:
+        digest = hashlib.sha256(target.read_bytes()).hexdigest()
+        if entries[target.name] != digest:
+            raise RuntimeError("Refusing to replace an existing published version with different bytes")
+    else:
+        entries[target.name] = hashlib.sha256(target.read_bytes()).hexdigest()
+    # Keep the latest core first to make old update detectors see 0.5.16.
+    latest = target.name
+    ordered = [latest, *sorted(name for name in entries if name != latest)]
     manifest = "# King Music official release files\n" + "".join(
-        f"{hashlib.sha256(file.read_bytes()).hexdigest()}  {file.name}\n" for file in artifacts
+        f"{entries[name]}  {name}\n" for name in ordered
     )
-    (official / "manifest.txt").write_text(manifest, encoding="utf-8", newline="\n")
+    manifest_path.write_text(manifest, encoding="utf-8", newline="\n")
     if SIGNING_KEY.is_file():
         subprocess.run(["javac", str(ROOT / "tools" / "ReleaseSigner.java")], check=True)
         subprocess.run(["java", "-cp", str(ROOT / "tools"), "ReleaseSigner", "sign",

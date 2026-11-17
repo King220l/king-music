@@ -151,6 +151,17 @@ final class MusicSettings {
         return current != null && current.account().equals(account) ? current : new WaveHistory(account, List.of());
     }
 
+    // A manual skip should affect Wave recommendations even when audio
+    // was skipped before the first audio buffer was decoded.
+    void rememberWaveSkip(String account, String trackId) {
+        WaveHistory before = waveHistory(account);
+        WaveHistory after = before.heard(trackId);
+        if (after != before) {
+            waveHistory = after;
+            save();
+        }
+    }
+
     List<MusicApi.Track> recentTracks() { return recent.stream().map(RecentTrack::track).filter(Objects::nonNull).toList(); }
 
     boolean rememberPlayback(MusicApi.Track track, String waveAccount) {

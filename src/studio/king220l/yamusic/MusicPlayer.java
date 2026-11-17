@@ -251,7 +251,16 @@ final class MusicPlayer {
         else if (hasPrevious()) select(index - 1);
     }
 
-    void next() {
+    void next() { next(true); }
+
+    private void next(boolean manual) {
+        // Only explicit skips are recorded here. Natural track endings are
+        // still handled by heardAudio(), preserving the old playback behavior.
+        if (manual && wave != null && track() != null && api.waveActive(wave)) {
+            if (wave.seeded()) seededHistory = seededHistory.heard(track().id());
+            else settings.rememberWaveSkip(wave.accountId(), track().id());
+        }
+
         if (upcomingCount() > 0) select(index + 1);
         else if (wrapsQueue()) select(0);
         else if (canContinueWave()) fetchWaveContinuation();
@@ -319,7 +328,9 @@ final class MusicPlayer {
         } else if (!settings.autoAdvance) {
             return;
         } else if (hasNext()) {
-            next();
+
+        next(false);
+
         }
     }
 

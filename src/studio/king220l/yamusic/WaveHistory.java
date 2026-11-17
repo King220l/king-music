@@ -1,7 +1,6 @@
 package studio.king220l.yamusic;
 
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -43,8 +42,9 @@ record WaveHistory(String account, List<String> recent) {
         var fresh = new ArrayList<MusicApi.Track>();
         distinct.forEach((id, track) -> { if (!recent.contains(id)) fresh.add(track); });
         if (!fresh.isEmpty()) return List.copyOf(fresh);
-        return distinct.values().stream().sorted(Comparator.comparingInt(
-            (MusicApi.Track track) -> recent.indexOf(trackKey(track.id()))).reversed()).toList();
+        // Do not feed already-heard recommendations back to the player.
+        // The API should ask for another page instead of replaying stale tracks.
+        return List.of();
     }
 
     static String trackKey(String value) {
