@@ -8,3 +8,6 @@ f44c7b0bfe6be0b4ab00e68491ffa337d59abb139482398137302b4fc049e8a0  King-Music-Vis
 56f433ac3ff54a5387f28aede9326a7fff292d74471bb9dbb34208654021df17  King-Music-0.5.16-Fabric-26.3.jar
 a2665e35cd4540fd20727d41b44c367d79f88e9f961d1180ddd19c030aee3d86  King-Music-Lyrics-0.1.5-Fabric-26.3.jar
 3b5c1a4e2748c4412c7c8e4f2ada00bd75e952bdd4441f6102eb47969b50050d  King-Music-Visualizer-0.1.1-Fabric-26.3.jar
+dfd3dd5f7b7906186aee341ae28c7f78ecb3cffa9e8e1f6f8f261b687f6944ef  King-Music-0.5.16-Fabric-26.3-r3.jar
+b42888bb42b4d1c0830b195520f23a17e3870fee62c08965db703c3f97d4d341  King-Music-Lyrics-0.1.5-Fabric-26.3-r3.jar
+af7ab9aa1eebbb9053b3df506fb7c4bb6ab9a9794dcd9cd0d51dd35214fe00bb  King-Music-Visualizer-0.1.1-Fabric-26.3-r3.jar
