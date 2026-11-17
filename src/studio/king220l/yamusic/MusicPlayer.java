@@ -328,9 +328,9 @@ final class MusicPlayer {
         } else if (!settings.autoAdvance) {
             return;
         } else if (hasNext()) {
-
+        
         next(false);
-
+        
         }
     }
 

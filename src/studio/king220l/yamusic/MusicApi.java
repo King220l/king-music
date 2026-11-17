@@ -316,40 +316,21 @@ final class MusicApi {
         if (!previous.matches("[0-9]{1,24}")) previous = "";
         String cursor = previous.isEmpty() ? history.latest() : previous;
         if (wave.seeded() && cursor.equals(wave.seed)) cursor = "";
-        List<Track> received;
+        // Exclude the currently playing track even when all other suggestions
+        // already occur in the account's recent history.
+        String excluded = previous.isEmpty() ? history.latest() : previous;
+        String startCursor = cursor;
         try {
-            received = waveTracks(expected, wave, cursor);
+            List<Track> selected = history.pick(c -> waveTracks(expected, wave, c), excluded, startCursor);
+            if (selected.isEmpty()) throw new IOException("Моя волна не предложила другой трек. Попробуйте позже.");
+            return selected;
         } catch (HttpError rejectedCursor) {
-            if (cursor.isEmpty() || rejectedCursor.status != 400 && rejectedCursor.status != 404) throw rejectedCursor;
-            received = waveTracks(expected, wave, "");
-            cursor = "";
+            if (startCursor.isEmpty() || rejectedCursor.status != 400 && rejectedCursor.status != 404)
+                throw rejectedCursor;
+            List<Track> selected = history.pick(c -> waveTracks(expected, wave, c), excluded, "");
+            if (selected.isEmpty()) throw new IOException("Моя волна не предложила другой трек. Попробуйте позже.");
+            return selected;
         }
-        if (!cursor.isEmpty() && !history.hasNew(received, previous.isEmpty() ? cursor : previous)) {
-            String tail = received.isEmpty() ? "" : WaveHistory.trackKey(received.getLast().id());
-            if (tail.equals(cursor)) tail = "";
-            try {
-                var additional = new ArrayList<>(received);
-                additional.addAll(waveTracks(expected, wave, tail));
-                received = additional;
-            } catch (IOException failure) {
-                if (received.isEmpty() || !waveActive(wave)) throw failure;
-            }
-        }
-        String exclude = previous.isEmpty() ? history.latest() : previous;
-        List<Track> selected = history.choose(received, exclude);
-        // A Wave station may return a stale page after rapid skips. Follow the
-        // response tail up to twice before giving up, without looping forever.
-        for (int attempt = 0; selected.isEmpty() && attempt < 2; attempt++) {
-            String tail = received.isEmpty() ? "" : WaveHistory.trackKey(received.getLast().id());
-            if (tail.isEmpty() || tail.equals(cursor)) break;
-            cursor = tail;
-            List<Track> more = waveTracks(expected, wave, cursor);
-            if (more.isEmpty()) break;
-            received = more;
-            selected = history.choose(received, exclude);
-        }
-        if (selected.isEmpty()) throw new IOException("Моя волна пока не нашла новых треков. Попробуйте позже.");
-        return selected;
     }
 
     private List<Track> waveTracks(Session expected, WaveSession wave, String cursor) throws Exception {

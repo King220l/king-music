@@ -124,7 +124,9 @@ def main():
     if target.name in entries:
         digest = hashlib.sha256(target.read_bytes()).hexdigest()
         if entries[target.name] != digest:
-            raise RuntimeError("Refusing to replace an existing published version with different bytes")
+            if os.environ.get("KING_MUSIC_REPLACE_RELEASE") != "I_UNDERSTAND":
+                raise RuntimeError("Published 0.5.16 has a different SHA-256. To intentionally replace it, set KING_MUSIC_REPLACE_RELEASE=I_UNDERSTAND; this requires a new signed manifest and replacement GitHub release asset.")
+            entries[target.name] = digest
     else:
         entries[target.name] = hashlib.sha256(target.read_bytes()).hexdigest()
     # Keep the latest core first to make old update detectors see 0.5.16.
@@ -133,11 +135,13 @@ def main():
     manifest = "# King Music official release files\n" + "".join(
         f"{entries[name]}  {name}\n" for name in ordered
     )
+    # Never leave a stale signed manifest when the signing key is unavailable.
+    if not SIGNING_KEY.is_file():
+        raise RuntimeError("Signing key missing; refusing to overwrite the previously signed manifest")
     manifest_path.write_text(manifest, encoding="utf-8", newline="\n")
-    if SIGNING_KEY.is_file():
-        subprocess.run(["javac", str(ROOT / "tools" / "ReleaseSigner.java")], check=True)
-        subprocess.run(["java", "-cp", str(ROOT / "tools"), "ReleaseSigner", "sign",
-            str(official / "manifest.txt"), str(official / "manifest.sig")], check=True)
+    subprocess.run(["javac", str(ROOT / "tools" / "ReleaseSigner.java")], check=True)
+    subprocess.run(["java", "-cp", str(ROOT / "tools"), "ReleaseSigner", "sign",
+        str(official / "manifest.txt"), str(official / "manifest.sig")], check=True)
     print(target)
     for addon in addons:
         print(addon)
