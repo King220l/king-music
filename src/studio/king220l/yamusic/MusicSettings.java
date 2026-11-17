@@ -58,6 +58,7 @@ final class MusicSettings {
     int volume = 60;
     boolean muted;
     boolean uiSounds = true;
+    String language = "en_us";
     Repeat repeat = Repeat.OFF;
     boolean autoAdvance = true;
     boolean miniPlayer = true;
@@ -112,6 +113,9 @@ final class MusicSettings {
         loaded.hudTextScale = Math.clamp(loaded.hudTextScale, 70, 110);
         loaded.hudOpacity = Math.clamp(loaded.hudOpacity, 40, 100);
         if (loaded.repeat == null) loaded.repeat = Repeat.OFF;
+        MusicI18n.initialize(path.getParent());
+        if (loaded.language == null || !MusicI18n.hasLanguage(loaded.language)) loaded.language = "en_us";
+        MusicI18n.use(loaded.language);
         if (loaded.yandexQuality == null) loaded.yandexQuality = YandexQuality.AUTO;
         if (loaded.localFolder == null) loaded.localFolder = "";
         loaded.recent = loaded.recent == null ? List.of() : loaded.recent.stream()

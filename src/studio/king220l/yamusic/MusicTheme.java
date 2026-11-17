@@ -117,7 +117,7 @@ final class MusicTheme {
     }
 
     static Component styled(String value, Type type) {
-        return Component.literal(value).withStyle(style -> style.withFont(type.font));
+        return Component.literal(MusicI18n.text(value)).withStyle(style -> style.withFont(type.font));
     }
 
     static int width(Font font, String value, Type type) {

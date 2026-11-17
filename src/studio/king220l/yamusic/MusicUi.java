@@ -68,7 +68,7 @@ final class MusicUi {
         float press;
 
         Control(Rect r, String label, Icon icon, Style style, boolean showLabel, boolean leftAligned, Runnable action) {
-            super(r.x(), r.y(), r.w(), r.h(), Component.literal(label));
+            super(r.x(), r.y(), r.w(), r.h(), MusicI18n.component(label));
             this.icon = icon;
             this.style = style;
             this.showLabel = showLabel;
@@ -76,10 +76,11 @@ final class MusicUi {
             this.action = action;
         }
 
-        void hint(String label) { hints.set(Tooltip.create(Component.literal(label))); }
+        void hint(String label) { hints.set(Tooltip.create(MusicI18n.component(label))); }
 
         void setLabel(String label) {
-            if (!getMessage().getString().equals(label)) setMessage(Component.literal(label));
+            String translated = MusicI18n.text(label);
+            if (!getMessage().getString().equals(translated)) setMessage(Component.literal(translated));
         }
 
         @Override
@@ -363,6 +364,23 @@ final class MusicUi {
             Icon.HEART.draw(g, x, y, color);
             Icon.HEART_FILLED.draw(g, x, y, ARGB.multiplyAlpha(ROSE, Math.min(1, progress * 3)));
             pose.popMatrix();
+        }
+    }
+
+    private static final class TrustCrown extends Control {
+        TrustCrown(Rect bounds, Runnable action) {
+            super(bounds, "Корона", Icon.CROWN, Style.GHOST, false, false, action);
+        }
+
+        @Override
+        void drawSymbol(GuiGraphicsExtractor g, int x, int y, int color) {
+            Icon.CROWN.draw(g, x, y, BuildTrust.crownColor());
+        }
+
+        @Override
+        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+            super.extractWidgetRenderState(g, mx, my, dt);
+            if (BuildTrust.updateAvailable()) rounded(g, getRight() - 6, getY() + 2, 4, 4, 2, ROSE);
         }
     }
 
@@ -703,8 +721,9 @@ final class MusicUi {
             icon(new Rect(actionRight - 83, y, 25, 25), "Аккаунты", Icon.USER,
                 tab == Tab.ACCOUNT ? Style.SELECTED : Style.GHOST, () -> secondary(Tab.ACCOUNT));
             if (frame.w >= 245) {
-                creditCrown = button(new Rect(actionRight - 112, y, 25, 25), "Корона", Icon.CROWN, Style.GHOST,
-                    false, false, () -> creditShownAt = Util.getMillis());
+                creditCrown = addRenderableWidget(new TrustCrown(new Rect(actionRight - 112, y, 25, 25),
+                    () -> creditShownAt = Util.getMillis()));
+                creditCrown.hint(BuildTrust.crownMessage());
             }
             int left = frame.x + (condensed ? 40 : frame.w < 545 ? 144 : 176);
             int available = actionRight - (creditCrown == null ? 91 : 120) - left;
@@ -1108,6 +1127,12 @@ final class MusicUi {
         private List<Preference> soundSettings() {
             var s = mod.settings;
             List<Preference> options = new ArrayList<>(List.of(
+                new Preference("Язык", row -> valueButton(row, MusicI18n.languageLabel(s.language), Icon.REFRESH, false, () -> {
+                    s.language = MusicI18n.nextLanguage(s.language);
+                    MusicI18n.use(s.language);
+                    s.save();
+                    rebuildWidgets();
+                })),
                 new Preference("Размер интерфейса", row -> addRenderableWidget(new Slider(sliderArea(row), "Размер интерфейса",
                     "%", s.uiScale, MusicSettings.MIN_UI_SCALE, 100, true, v -> s.uiScale = v, () -> {
                         s.save();
@@ -1794,7 +1819,9 @@ final class MusicUi {
         }
 
         private void drawCredit(GuiGraphicsExtractor g) {
-            if (creditCrown == null || creditShownAt < 0) return;
+            if (creditCrown == null) return;
+            creditCrown.hint(BuildTrust.crownMessage());
+            if (creditShownAt < 0) return;
             long age = Util.getMillis() - creditShownAt;
             if (age >= 3100) return;
             g.nextStratum();
@@ -1802,14 +1829,16 @@ final class MusicUi {
             int y = frame.y + 46 + Math.round(6 * Math.max(0, 1 - age / 170f));
             int width = 137, height = 35;
             float fade = Math.min(1, (3100 - age) / 280f);
-            outline(g, x, y, width, height, 7, ARGB.multiplyAlpha(0xffb48955, fade),
-                ARGB.multiplyAlpha(0xff322820, fade));
-            Icon.CROWN.draw(g, x + 9, y + 12, ARGB.multiplyAlpha(KING_GOLD, fade));
-            text(g, font, "King220l", x + 25, y + 7, ARGB.multiplyAlpha(KING_GOLD, fade), Type.STRONG, width - 31);
-            text(g, font, "Сделал этот мод", x + 25, y + 19, ARGB.multiplyAlpha(TEXT, fade), Type.BODY, width - 31);
+            int crown = BuildTrust.crownColor();
+            outline(g, x, y, width, height, 7, ARGB.multiplyAlpha(crown, fade), ARGB.multiplyAlpha(0xff322820, fade));
+            Icon.CROWN.draw(g, x + 9, y + 12, ARGB.multiplyAlpha(crown, fade));
+            text(g, font, BuildTrust.modified() ? "Неофициальная сборка" : "King220l", x + 25, y + 7,
+                ARGB.multiplyAlpha(crown, fade), Type.STRONG, width - 31);
+            text(g, font, BuildTrust.updateAvailable() ? "Доступно обновление" : BuildTrust.modified() ? "Файл изменён" : "Оригинальный мод",
+                x + 25, y + 19, ARGB.multiplyAlpha(TEXT, fade), Type.BODY, width - 31);
             if (age >= 590) return;
             float progress = age / 590f;
-            int spark = ARGB.multiplyAlpha(KING_GOLD, 1 - progress);
+            int spark = ARGB.multiplyAlpha(crown, 1 - progress);
             int cx = creditCrown.getX() + 12, cy = creditCrown.getY() + 12;
             for (int i = 0; i < 7; i++) {
                 double angle = i * Math.TAU / 7 + .27;

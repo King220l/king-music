@@ -1,6 +1,6 @@
 # King Music official release files
-37c18ae84416bafb043b38888231a8f06f67ce5da6da0dbcc8af83aee6742e35  King-Music-0.5.14-Fabric-26.2.jar
-a758e7c4640282284eaa0befbf733d6bc85c1c43a24055e275afe2d46c0ed3ec  King-Music-Together-0.2.1-Fabric-26.2.jar
-709450501d4557fa1f1c78d3e38a693fa75d1168190a1f0405cc366f5b3ace2f  King-Music-Lyrics-0.1.5-Fabric-26.2.jar
-45ba004b7be2a43c636af9f1f07e63e407c8e4e5fae314ea6b82782da6bd7af2  King-Music-Visualizer-0.1.1-Fabric-26.2.jar
-6ce69da89eac9f81e7435e58c6608689756f88ee029a15ce4585f71011f9705c  King-Music-Together-Server-0.1.1-Fabric-26.2.jar
+8f3c8a4e4ed3472567e1eb0f6e335ac46026a586712ba147287419cf05ce94f1  King-Music-0.5.15-Fabric-26.2.jar
+5db859b00c04c90011be48f87cc591251b7b711d542bdeb3f65dd423cf973c51  King-Music-Together-0.2.1-Fabric-26.2.jar
+3c877f9e961d9f00f8da6f0b0c485a4c548e67bd53f5c4b2017e00b7fb200f81  King-Music-Lyrics-0.1.5-Fabric-26.2.jar
+f44c7b0bfe6be0b4ab00e68491ffa337d59abb139482398137302b4fc049e8a0  King-Music-Visualizer-0.1.1-Fabric-26.2.jar
+55ac5b3771bb20bbb634c17401bc0fcd65f4542843adedb9e64c5c09381054af  King-Music-Together-Server-0.1.1-Fabric-26.2.jar

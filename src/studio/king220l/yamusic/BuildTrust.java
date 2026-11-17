@@ -36,6 +36,8 @@ final class BuildTrust {
     private static final int LIMIT = 65_536;
     private static final CountDownLatch READY = new CountDownLatch(1);
     private static volatile State state = State.CHECKING;
+    private static volatile boolean updateAvailable;
+    private static volatile String latestVersion = "";
     private static Path cacheManifest;
     private static Path cacheSignature;
 
@@ -77,6 +79,22 @@ final class BuildTrust {
         };
     }
 
+    static boolean modified() { return state == State.MODIFIED; }
+    static boolean updateAvailable() { return updateAvailable; }
+    static int crownColor() { return modified() ? MusicTheme.ROSE : MusicTheme.KING_GOLD; }
+
+    static String crownMessage() {
+        if (modified()) return "Предупреждение: файл изменён или не совпадает с официальными релизами King220l. Скачивай King Music только с GitHub автора, Modrinth или CurseForge.";
+        if (updateAvailable) return "Официальный King Music от King220l · доступно обновление " + latestVersion;
+        return switch (state) {
+            case VERIFIED, CACHED -> "Оригинальный King Music от King220l · цифровая подпись подтверждена";
+            case CHECKING -> "Проверяем оригинальность King Music…";
+            case UNAVAILABLE -> "Не удалось проверить обновления: GitHub недоступен";
+            case DEVELOPMENT -> "King Music от King220l · режим разработки";
+            case MODIFIED -> "";
+        };
+    }
+
     private static void check() {
         try {
             byte[] manifest = download(MANIFEST);
@@ -85,8 +103,11 @@ final class BuildTrust {
                 finish(State.MODIFIED);
                 return;
             }
+            latestVersion = coreVersion(manifest);
+            updateAvailable = newer(latestVersion, installedVersion());
             if (!matchesInstalled(manifest)) {
-                finish(State.MODIFIED);
+                if (cachedMatchesInstalled()) finish(State.CACHED);
+                else finish(State.MODIFIED);
                 return;
             }
             saveCache(manifest, signature);
@@ -101,6 +122,40 @@ final class BuildTrust {
                 finish(State.UNAVAILABLE);
             }
         }
+    }
+
+    private static boolean cachedMatchesInstalled() {
+        try {
+            byte[] manifest = Files.readAllBytes(cacheManifest);
+            byte[] signature = Files.readAllBytes(cacheSignature);
+            return verifySignature(manifest, signature) && matchesInstalled(manifest);
+        } catch (Exception ignored) {
+            return false;
+        }
+    }
+
+    private static String coreVersion(byte[] manifest) throws IOException {
+        for (String filename : parse(manifest).keySet()) {
+            var match = java.util.regex.Pattern.compile("King-Music-([0-9]+(?:\\.[0-9]+)*)-Fabric-26\\.2\\.jar").matcher(filename);
+            if (match.matches()) return match.group(1);
+        }
+        return "";
+    }
+
+    private static String installedVersion() {
+        return FabricLoader.getInstance().getModContainer("yamusic")
+            .map(mod -> mod.getMetadata().getVersion().getFriendlyString()).orElse("0");
+    }
+
+    private static boolean newer(String candidate, String current) {
+        if (candidate == null || candidate.isBlank()) return false;
+        String[] left = candidate.split("\\."), right = current.split("\\.");
+        for (int i = 0; i < Math.max(left.length, right.length); i++) {
+            int a = i < left.length && left[i].matches("\\d+") ? Integer.parseInt(left[i]) : 0;
+            int b = i < right.length && right[i].matches("\\d+") ? Integer.parseInt(right[i]) : 0;
+            if (a != b) return a > b;
+        }
+        return false;
     }
 
     private static byte[] download(URI uri) throws Exception {
