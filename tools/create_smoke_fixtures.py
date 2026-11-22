@@ -22,7 +22,7 @@ for name, frequency in [('KING Test - Stereo Tone', 440), ('KING Test - Second T
             output.setframerate(44100)
             output.writeframes(pcm.tobytes())
     path.with_suffix('.lrc').write_text(
-        '[00:00.00]KING Music 1.21.1 test\n[00:05.00]Lyrics synchronization\n'
+        '[00:00.00]KING Music 1.21.2 test\n[00:05.00]Lyrics synchronization\n'
         '[00:10.00]Перемотка и русский текст\n[00:20.00]Visualizer stereo test\n'
         '[00:40.00]End of test track\n', encoding='utf-8')
 config = ROOT / 'run/config/yamusic'
@@ -31,5 +31,8 @@ settings = config / 'settings.json'
 if not settings.exists():
     settings.write_text(json.dumps(dict(language='ru_ru', localFolder=str(fixtures), volume=5,
                                         repeat='QUEUE', hud='ALWAYS', uiScale=85)), encoding='utf-8')
+options = ROOT / 'run/options.txt'
+if not options.exists():
+    options.write_text('guiScale:2\nmaxFps:30\nrenderDistance:2\nsimulationDistance:2\npauseOnLostFocus:false\nsoundCategory_master:0.0\n', encoding='utf-8')
 print('Synthetic WAV/LRC fixtures:', fixtures)
 print('Run: gradlew.bat -PsmokeTest :runClient; result: run/smoke-result.txt')

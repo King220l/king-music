@@ -2,6 +2,7 @@ package studio.king220l.yamusic;
 
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import studio.king220l.yamusic.CompatColor;
@@ -184,7 +185,7 @@ final class MusicTheme {
     }
 
     static void emblem(GuiGraphics g, int x, int y, int size) {
-        g.blit(EMBLEM, x, y, size, size, 0f, 0f, 128, 128, 128, 128);
+        g.blit(RenderType::guiTextured, EMBLEM, x, y, 0f, 0f, size, size, 128, 128, 128, 128);
     }
 
     static void drawRecord(GuiGraphics g, int x, int y, int size, long positionMs) {

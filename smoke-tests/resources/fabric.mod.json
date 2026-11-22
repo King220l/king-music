@@ -5,5 +5,5 @@
   "name": "KING Music development smoke tests",
   "environment": "client",
   "entrypoints": { "client": ["studio.king220l.yamusic.PortSmokeTest"] },
-  "depends": { "yamusic": "*", "king_music_lyrics": "*", "king_music_visualizer": "*", "minecraft": "=1.21.1" }
+  "depends": { "yamusic": "*", "king_music_lyrics": "*", "king_music_visualizer": "*", "minecraft": "=1.21.2" }
 }
