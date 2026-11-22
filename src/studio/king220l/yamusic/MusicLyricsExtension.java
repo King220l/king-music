@@ -7,7 +7,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 
 interface MusicLyricsExtension {
-    void initialize(MusicMod mod, KeyMapping.Category category);
+    void initialize(MusicMod mod, String category);
     void tick(Minecraft game);
     void stop();
     AbstractWidget panel(MusicUi.Rect bounds);

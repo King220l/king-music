@@ -1,8 +1,8 @@
 package studio.king220l.yamusic;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.util.ARGB;
+import net.minecraft.client.gui.GuiGraphics;
+import studio.king220l.yamusic.CompatColor;
 import net.minecraft.util.FormattedCharSequence;
 
 import java.util.ArrayList;
@@ -70,17 +70,17 @@ final class LyricsHud {
             Math.round(cardHeight * scale), settings.x, settings.y);
     }
 
-    void draw(GuiGraphicsExtractor g, Font font, Rect box) {
+    void draw(GuiGraphics g, Font font, Rect box) {
         if (box.w() < 1 || box.h() < 1) return;
-        var pose = g.pose();
+        var pose = CompatPose.of(g);
         pose.pushMatrix().translate(box.x(), box.y()).scale(box.w() / (float) WIDTH, box.h() / (float) height());
         boolean card = settings.hudStyle == LyricsSettings.HudStyle.CARD;
         boolean outlined = settings.hudStyle == LyricsSettings.HudStyle.OUTLINED;
         float opacity = settings.hudOpacity / 100f;
-        if (card) outline(g, 0, 0, WIDTH, height(), 7, ARGB.multiplyAlpha(0xff514448, opacity),
-            ARGB.multiplyAlpha(0xff17151a, opacity));
+        if (card) outline(g, 0, 0, WIDTH, height(), 7, CompatColor.multiplyAlpha(0xff514448, opacity),
+            CompatColor.multiplyAlpha(0xff17151a, opacity));
         boolean underline = settings.emphasis == LyricsSettings.Emphasis.UNDERLINE;
-        int edge = ARGB.multiplyAlpha(OUTLINE_GOLD, opacity * .72f);
+        int edge = CompatColor.multiplyAlpha(OUTLINE_GOLD, opacity * .72f);
         for (Caption caption : captions) {
             int x = SIDE_PAD + settings.alignment.inset(AVAILABLE, caption.width);
             int y = VERTICAL_PAD + caption.row * settings.lineHeight + (settings.lineHeight - 10) / 2;
@@ -91,14 +91,14 @@ final class LyricsHud {
             };
             var words = caption.words;
             if (outlined) {
-                g.text(font, words, x - 1, y, edge, false);
-                g.text(font, words, x + 1, y, edge, false);
-                g.text(font, words, x, y - 1, edge, false);
-                g.text(font, words, x, y + 1, edge, false);
+                g.drawString(font, words, x - 1, y, edge, false);
+                g.drawString(font, words, x + 1, y, edge, false);
+                g.drawString(font, words, x, y - 1, edge, false);
+                g.drawString(font, words, x, y + 1, edge, false);
             }
-            g.text(font, words, x, y, card ? color : ARGB.multiplyAlpha(color, opacity), false);
+            g.drawString(font, words, x, y, card ? color : CompatColor.multiplyAlpha(color, opacity), false);
             if (underline && caption.role == Role.CURRENT && caption.width > 0) {
-                g.fill(x, y + 10, x + caption.width, y + 11, card ? ACCENT : ARGB.multiplyAlpha(ACCENT, opacity));
+                g.fill(x, y + 10, x + caption.width, y + 11, card ? ACCENT : CompatColor.multiplyAlpha(ACCENT, opacity));
             }
         }
         pose.popMatrix();

@@ -1,12 +1,12 @@
 package studio.king220l.yamusic;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
+import studio.king220l.yamusic.CompatInput.KeyEvent;
+import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -103,15 +103,27 @@ final class LyricsEditor extends MusicScreen {
     }
 
     private void textControls() {
-        var edit = addRenderableWidget(MultiLineEditBox.builder().setX(body.x()).setY(body.y())
-            .setShowBackground(false).setShowDecorations(false)
-            .setTextColor(TEXT).setCursorColor(ACCENT)
-            .setPlaceholder(Component.literal("Вставь или напиши текст, по одной строке на абзац"))
-            .build(font, body.w(), body.h(), Component.literal("Строки песни")));
+        var edit = addRenderableWidget(new MultiLineEditBox(font, body.x(), body.y(), body.w(), body.h(),
+            Component.literal("Вставь или напиши текст, по одной строке на абзац"), Component.literal("Строки песни")) {
+            @Override
+            public void renderWidget(GuiGraphics graphics, int mx, int my, float delta) {
+                if (!visible) return;
+                CompatPose.scissor(graphics, getX() + 1, getY() + 1, getRight() - 1, getBottom() - 1);
+                graphics.pose().pushPose();
+                graphics.pose().translate(0, -scrollAmount(), 0);
+                renderContents(graphics, mx, my, delta);
+                graphics.pose().popPose();
+                graphics.disableScissor();
+                renderDecorations(graphics);
+            }
+        });
         edit.setCharacterLimit(LyricsData.MAX_TEXT);
-        edit.setLineLimit(LyricsData.MAX_LINES);
         edit.setValue(draft);
-        edit.setValueListener(value -> draft = value);
+        edit.setValueListener(value -> {
+            if (value.lines().limit(LyricsData.MAX_LINES + 1L).count() > LyricsData.MAX_LINES) {
+                edit.setValue(value.lines().limit(LyricsData.MAX_LINES).collect(java.util.stream.Collectors.joining("\n")));
+            } else draft = value;
+        });
         textInput = edit;
         button(new Rect(body.x(), body.bottom() + 7, 112, 21), "Расставить метки", null, Style.SELECTED,
             true, false, this::startMarking);
@@ -301,11 +313,11 @@ final class LyricsEditor extends MusicScreen {
         }, path -> {
             saving = false;
             addon.saved(track, result);
-            if (minecraft.gui.screen() == this) super.onClose();
+            if (minecraft.screen == this) super.onClose();
         }, error -> {
             saving = false;
             notice = error;
-            if (minecraft.gui.screen() == this) rebuildWidgets();
+            if (minecraft.screen == this) rebuildWidgets();
         });
     }
 
@@ -356,14 +368,17 @@ final class LyricsEditor extends MusicScreen {
     public void mouseMoved(double x, double y) { super.mouseMoved(x / scale, y / scale); }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean twice) { return super.mouseClicked(scaled(event), twice); }
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button); return super.mouseClicked(scaled(event).x(), scaled(event).y(), scaled(event).button()); }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) { return super.mouseReleased(scaled(event)); }
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button); return super.mouseReleased(scaled(event).x(), scaled(event).y(), scaled(event).button()); }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double x, double y) {
-        return super.mouseDragged(scaled(event), x / scale, y / scale);
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double x, double y) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
+        return super.mouseDragged(scaled(event).x(), scaled(event).y(), scaled(event).button(), x / scale, y / scale);
     }
 
     @Override
@@ -376,8 +391,9 @@ final class LyricsEditor extends MusicScreen {
     }
 
     @Override
-    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
-        g.pose().pushMatrix().scale(scale);
+    public void render(GuiGraphics g, int mx, int my, float dt) {
+        renderBackground(g, mx, my, dt);
+        CompatPose.of(g).pushMatrix().scale(scale);
         outline(g, box.x(), box.y(), box.w(), box.h(), 10, BORDER, BASE);
         text(g, font, "Редактор текста", box.x() + 39, box.y() + 14, TEXT, Type.STRONG, box.w() - 154);
         int progressWidth = marking ? 99 : 0;
@@ -410,8 +426,8 @@ final class LyricsEditor extends MusicScreen {
         }
         text(g, font, help, body.x(), body.bottom() + 37, MUTED, Type.BODY, body.w());
         text(g, font, "Скорость", body.x(), box.bottom() - 53, MUTED, Type.BODY, 47);
-        super.extractRenderState(g, (int) (mx / scale), (int) (my / scale), dt);
-        g.pose().popMatrix();
+        super.render(g, (int) (mx / scale), (int) (my / scale), dt);
+        CompatPose.of(g).popMatrix();
     }
 
     private final class CueMarker extends AbstractWidget {
@@ -437,7 +453,8 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        public void onClick(MouseButtonEvent event, boolean twice) {
+        public void onClick(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
             if (!active) return;
             long start = timestamp();
             wasFine = event.hasShiftDown();
@@ -448,7 +465,8 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        protected void onDrag(MouseButtonEvent event, double dx, double dy) {
+        protected void onDrag(double mouseX, double mouseY, double dx, double dy) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
             if (!dragging || !active) return;
             boolean fine = event.hasShiftDown();
             if (fine) pendingTime = Math.clamp(pendingTime + Math.round((event.x() - lastX) * 10), 0, mod.player.durationMs());
@@ -458,7 +476,8 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        public void onRelease(MouseButtonEvent event) {
+        public void onRelease(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
             if (!dragging) return;
             dragging = false;
             if (!active || !canMark()) return;
@@ -467,7 +486,8 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        public boolean keyPressed(KeyEvent event) {
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
             if (!active || !isFocused() || event.key() != GLFW.GLFW_KEY_LEFT && event.key() != GLFW.GLFW_KEY_RIGHT) return false;
             int step = (event.hasShiftDown() ? 100 : 10) * (event.key() == GLFW.GLFW_KEY_LEFT ? -1 : 1);
             setCue(selected, Math.clamp(timestamp() + step, 0, mod.player.durationMs()));
@@ -477,7 +497,7 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
             if (!active) return;
             long stamp = timestamp();
             int x = getX() + 4 + (int) Math.round((getWidth() - 8) * (double) stamp / mod.player.durationMs());

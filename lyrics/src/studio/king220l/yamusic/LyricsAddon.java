@@ -9,9 +9,8 @@
 package studio.king220l.yamusic;
 
 import java.util.List;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -19,7 +18,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 
 public final class LyricsAddon implements MusicLyricsExtension {
@@ -35,16 +34,16 @@ public final class LyricsAddon implements MusicLyricsExtension {
     private String status = "";
 
     @Override
-    public void initialize(MusicMod mod, KeyMapping.Category category) {
+    public void initialize(MusicMod mod, String category) {
         this.mod = mod;
         settings = LyricsSettings.load(FabricLoader.getInstance().getConfigDir().resolve("yamusic/lyrics.json"));
         hud = new LyricsHud(settings);
-        toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping(
+        toggle = KeyBindingHelper.registerKeyBinding(new KeyMapping(
             "key.king_music_lyrics.toggle", GLFW.GLFW_KEY_UNKNOWN, category));
-        HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath("king_music_lyrics", "text"),
+        HudRenderCallback.EVENT.register(
             (graphics, time) -> {
                 var game = Minecraft.getInstance();
-                if (!settings.hud || game.level == null || game.gui.screen() != null || !mod.player.started()) return;
+                if (!settings.hud || game.level == null || game.screen != null || !mod.player.started()) return;
                 LyricsData lyrics = data();
                 int current = lyrics.cueAt(displayPosition());
                 if (current < 0) return;
@@ -55,7 +54,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
 
     @Override
     public void tick(Minecraft game) {
-        boolean visible = game.gui.screen() instanceof MusicUi.PlayerScreen screen && screen.showingLyrics();
+        boolean visible = game.screen instanceof MusicUi.PlayerScreen screen && screen.showingLyrics();
         if (!visible && !(settings.hud && game.level != null)) {
             if (worker != null) stop();
             if (wasVisible && observed != null && local(observed)) loaded = false;
@@ -125,7 +124,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
 
     @Override
     public void edit(Screen parent) {
-        if (canEdit()) Minecraft.getInstance().gui.setScreen(new LyricsEditor(mod, parent, this, observed, data));
+        if (canEdit()) Minecraft.getInstance().setScreen(new LyricsEditor(mod, parent, this, observed, data));
     }
 
     @Override
@@ -180,12 +179,12 @@ public final class LyricsAddon implements MusicLyricsExtension {
         }
         if (screen == null ? game.level == null : !(screen instanceof PauseScreen || screen instanceof TitleScreen)) return false;
         mod.open(screen);
-        if (game.gui.screen() instanceof MusicUi.PlayerScreen player) player.showLyrics();
+        if (game.screen instanceof MusicUi.PlayerScreen player) player.showLyrics();
         return true;
     }
 
     private static boolean matches(KeyMapping mapping, MusicShortcuts.Binding key) {
-        var bound = KeyMappingHelper.getBoundKeyOf(mapping);
+        var bound = KeyBindingHelper.getBoundKeyOf(mapping);
         return !mapping.isUnbound() && bound.getValue() == key.key()
             && bound.getType() == (key.mouse() ? com.mojang.blaze3d.platform.InputConstants.Type.MOUSE
                 : com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM);

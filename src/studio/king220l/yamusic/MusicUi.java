@@ -2,25 +2,23 @@ package studio.king220l.yamusic;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.gui.components.WidgetTooltipHolder;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.controls.KeyBindsScreen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonEvent;
-import net.minecraft.client.renderer.RenderPipelines;
+import studio.king220l.yamusic.CompatInput.KeyEvent;
+import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvents;
-import net.minecraft.util.ARGB;
-import net.minecraft.util.Util;
+import studio.king220l.yamusic.CompatColor;
+import net.minecraft.Util;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
@@ -40,7 +38,7 @@ import static studio.king220l.yamusic.MusicTheme.*;
 final class MusicUi {
     private static final int ROW = 28;
     private static final int SETTING = 26;
-    private static final Identifier BANNER = Identifier.fromNamespaceAndPath("yamusic", "textures/gui/wave.png");
+    private static final ResourceLocation BANNER = ResourceLocation.fromNamespaceAndPath("yamusic", "textures/gui/wave.png");
 
     enum Style { GHOST, FILLED, SELECTED, PRIMARY, TRANSPORT }
 
@@ -60,7 +58,7 @@ final class MusicUi {
         Style style;
         private final boolean showLabel;
         private final boolean leftAligned;
-        private final WidgetTooltipHolder hints = new WidgetTooltipHolder();
+
         private long lastFrame;
         private long pulseUntil;
         private boolean held;
@@ -76,7 +74,7 @@ final class MusicUi {
             this.action = action;
         }
 
-        void hint(String label) { hints.set(Tooltip.create(MusicI18n.component(label))); }
+        void hint(String label) { setTooltip(Tooltip.create(MusicI18n.component(label))); }
 
         void setLabel(String label) {
             String translated = MusicI18n.text(label);
@@ -84,14 +82,16 @@ final class MusicUi {
         }
 
         @Override
-        public void onClick(MouseButtonEvent event, boolean doubled) {
+        public void onClick(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
             held = true;
             pulse();
             action.run();
         }
 
         @Override
-        public void onRelease(MouseButtonEvent event) { held = false; }
+        public void onRelease(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0); held = false; }
 
         @Override
         public void playDownSound(SoundManager sounds) {
@@ -101,7 +101,8 @@ final class MusicUi {
         }
 
         @Override
-        public boolean keyPressed(KeyEvent event) {
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
             if (!active || !visible || !event.isSelection()) return false;
             playDownSound(Minecraft.getInstance().getSoundManager());
             pulse();
@@ -115,22 +116,22 @@ final class MusicUi {
             return active && isFocused() && Minecraft.getInstance().getLastInputType().isKeyboard();
         }
 
-        void beginMotion(GuiGraphicsExtractor g) {
+        void beginMotion(GuiGraphics g) {
             long now = Util.getNanos();
             float ms = lastFrame == 0 ? 16 : Math.min(50, (now - lastFrame) / 1_000_000f);
             lastFrame = now;
             if (held) {
                 var client = Minecraft.getInstance();
                 held = client.isWindowActive()
-                    && GLFW.glfwGetMouseButton(client.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+                    && GLFW.glfwGetMouseButton(client.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
             }
             hover = approach(hover, active && (isHovered() || keyboardFocus()) ? 1 : 0, ms / 125);
             press = approach(press, active && (held && isHovered() || now < pulseUntil) ? 1 : 0, ms / 78);
-            g.pose().pushMatrix();
+            CompatPose.of(g).pushMatrix();
             if (press > 0) {
                 float cx = getX() + width * .5f, cy = getY() + height * .5f;
                 float scale = 1 - .043f * press;
-                g.pose().translate(cx, cy).scale(scale).translate(-cx, -cy);
+                CompatPose.of(g).translate(cx, cy).scale(scale).translate(-cx, -cy);
             }
         }
 
@@ -140,55 +141,47 @@ final class MusicUi {
 
         int symbolSize() { return icon == null ? 0 : 9; }
 
-        void drawSymbol(GuiGraphicsExtractor g, int x, int y, int color) {
+        void drawSymbol(GuiGraphics g, int x, int y, int color) {
             icon.draw(g, x, y, icon == Icon.CROWN ? KING_GOLD : color);
         }
 
         @Override
         protected void updateWidgetNarration(NarrationElementOutput output) {
             defaultButtonNarrationText(output);
-            hints.updateNarration(output);
         }
 
-        @Override
-        protected void extractTooltipForNextRenderPass(GuiGraphicsExtractor g, int mx, int my) {
-            if (hints.get() != null) {
-                hints.refreshTooltipForNextRenderPass(g, screenX(g, mx), screenY(g, my), isHovered(), isFocused(),
-                    getRectangle().transformAxisAligned(g.pose()));
-            }
-        }
 
         @Override
-        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
             int x = getX(), y = getY();
             beginMotion(g);
             boolean focused = keyboardFocus();
             int fill = switch (style) {
-                case GHOST -> focused ? ELEVATED : ARGB.multiplyAlpha(ELEVATED, hover);
-                case FILLED -> ARGB.srgbLerp(hover, ELEVATED, HOVER);
-                case SELECTED -> ARGB.srgbLerp(hover, ACCENT_SOFT, ACCENT_HOVER);
-                case PRIMARY -> active ? ARGB.srgbLerp(hover, ACCENT_SOFT, ACCENT_HOVER) : ELEVATED;
-                case TRANSPORT -> ARGB.srgbLerp(hover, ELEVATED, 0xff413743);
+                case GHOST -> focused ? ELEVATED : CompatColor.multiplyAlpha(ELEVATED, hover);
+                case FILLED -> CompatColor.srgbLerp(hover, ELEVATED, HOVER);
+                case SELECTED -> CompatColor.srgbLerp(hover, ACCENT_SOFT, ACCENT_HOVER);
+                case PRIMARY -> active ? CompatColor.srgbLerp(hover, ACCENT_SOFT, ACCENT_HOVER) : ELEVATED;
+                case TRANSPORT -> CompatColor.srgbLerp(hover, ELEVATED, 0xff413743);
             };
-            if (active && press > 0 && style != Style.GHOST) fill = ARGB.scaleRGB(fill, 1 - press * .14f);
+            if (active && press > 0 && style != Style.GHOST) fill = CompatColor.scaleRGB(fill, 1 - press * .14f);
             int color = !active ? DIM : switch (style) {
                 case PRIMARY -> ACCENT_LIGHT;
                 case SELECTED -> ACCENT;
-                case TRANSPORT -> ARGB.srgbLerp(hover, ACCENT_LIGHT, ACCENT);
+                case TRANSPORT -> CompatColor.srgbLerp(hover, ACCENT_LIGHT, ACCENT);
                 default -> TEXT;
             };
             if (style == Style.TRANSPORT) {
-                int rim = focused ? ACCENT_LIGHT : ARGB.srgbLerp(hover, ACCENT_EDGE, ACCENT);
+                int rim = focused ? ACCENT_LIGHT : CompatColor.srgbLerp(hover, ACCENT_EDGE, ACCENT);
                 outline(g, x, y, width, height, Math.min(width, height) / 2, rim, fill);
             } else if (style == Style.PRIMARY && active) {
-                int rim = focused ? ACCENT_LIGHT : ARGB.srgbLerp(hover, ACCENT_EDGE, ACCENT);
+                int rim = focused ? ACCENT_LIGHT : CompatColor.srgbLerp(hover, ACCENT_EDGE, ACCENT);
                 outline(g, x, y, width, height, 5, rim, fill);
             } else if (focused || style == Style.SELECTED || style == Style.FILLED && hover > 0) {
                 int rim = focused ? ACCENT : style == Style.SELECTED
-                    ? ARGB.srgbLerp(hover, ACCENT_SOFT, ACCENT_EDGE)
-                    : ARGB.srgbLerp(hover, ELEVATED, BORDER_HOVER);
+                    ? CompatColor.srgbLerp(hover, ACCENT_SOFT, ACCENT_EDGE)
+                    : CompatColor.srgbLerp(hover, ELEVATED, BORDER_HOVER);
                 outline(g, x, y, width, height, 5, rim, fill);
-            } else if (ARGB.alpha(fill) > 0) {
+            } else if (CompatColor.alpha(fill) > 0) {
                 rounded(g, x, y, width, height, 5, fill);
             }
 
@@ -203,14 +196,14 @@ final class MusicUi {
             int px = leftAligned ? x + 7 : x + (width - group) / 2;
             int py = y + (height - 9) / 2;
             if (style == Style.TRANSPORT && icon != null) {
-                g.pose().translate(x + (width - 9) * .5f, y + (height - 9) * .5f);
+                CompatPose.of(g).translate(x + (width - 9) * .5f, y + (height - 9) * .5f);
                 icon.draw(g, 0, 0, color);
             } else {
                 if (iconWidth > 0) drawSymbol(g, px, y + (height - iconWidth) / 2, style == Style.GHOST && active
-                    ? ARGB.srgbLerp(hover, MUTED, color) : color);
+                    ? CompatColor.srgbLerp(hover, MUTED, color) : color);
                 if (showLabel) text(g, font, title, px + iconWidth + gap, py, color, type, maxText);
             }
-            g.pose().popMatrix();
+            CompatPose.of(g).popMatrix();
         }
     }
 
@@ -250,23 +243,26 @@ final class MusicUi {
         }
 
         @Override
-        public void onClick(MouseButtonEvent event, boolean doubled) {
+        public void onClick(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
             if (!player.canSeek()) return;
             draggingTrack = player.track();
             dragged = false;
-            super.onClick(event, doubled);
+            super.onClick(mouseX, mouseY);
         }
 
         @Override
-        public void onRelease(MouseButtonEvent event) {
-            super.onRelease(event);
+        public void onRelease(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+            super.onRelease(mouseX, mouseY);
             if (!locked && dragged && draggingTrack != null) player.seek(draggingTrack, position());
             draggingTrack = null;
             sync();
         }
 
         @Override
-        public boolean keyPressed(KeyEvent event) {
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
             if (!isFocused() || !active) return false;
             int key = event.key();
             if (key != GLFW.GLFW_KEY_LEFT && key != GLFW.GLFW_KEY_RIGHT) return false;
@@ -276,7 +272,7 @@ final class MusicUi {
         }
 
         @Override
-        public void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        public void renderWidget(GuiGraphics g, int mx, int my, float dt) {
             Font font = Minecraft.getInstance().font;
             int start = getX() + 4, end = getRight() - 4, y = getY() + height / 2;
             drawMeter(g, start, y, end, (float) value, ACCENT, active, isHoveredOrFocused() && active);
@@ -286,7 +282,7 @@ final class MusicUi {
             text(g, font, stamp, stampRight - stampWidth, y - 4, MUTED, Type.BODY, stampWidth);
             if (active && isHovered() && draggingTrack == null) {
                 double fraction = Math.clamp((mx - start) / (double) Math.max(1, end - start), 0, 1);
-                g.setTooltipForNextFrame(font, Component.literal(time(Math.round(duration * fraction))),
+                CompatUi.tooltip(g, font, Component.literal(time(Math.round(duration * fraction))),
                     screenX(g, mx), screenY(g, my));
             }
         }
@@ -302,13 +298,13 @@ final class MusicUi {
         }
 
         @Override
-        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
             beginMotion(g);
             int x = getX(), y = getY();
             if (keyboardFocus()) outline(g, x, y, width, height, 10, ACCENT, RAIL);
-            else if (hover > 0) rounded(g, x, y, width, height, 10, ARGB.multiplyAlpha(HOVER, hover));
+            else if (hover > 0) rounded(g, x, y, width, height, 10, CompatColor.multiplyAlpha(HOVER, hover));
             drawRecord(g, x + 2, y + 2, 16, player.recordPositionMs());
-            g.pose().popMatrix();
+            CompatPose.of(g).popMatrix();
         }
     }
 
@@ -324,7 +320,7 @@ final class MusicUi {
         int symbolSize() { return 13; }
 
         @Override
-        void drawSymbol(GuiGraphicsExtractor g, int x, int y, int color) {
+        void drawSymbol(GuiGraphics g, int x, int y, int color) {
             drawRecord(g, x, y, symbolSize(), player.recordPositionMs());
         }
     }
@@ -346,7 +342,7 @@ final class MusicUi {
         }
 
         @Override
-        void drawSymbol(GuiGraphicsExtractor g, int x, int y, int color) {
+        void drawSymbol(GuiGraphics g, int x, int y, int color) {
             if (!marked) {
                 super.drawSymbol(g, x, y, color);
                 return;
@@ -359,10 +355,10 @@ final class MusicUi {
             if (progress == 1) pulseStart = -1;
             float scale = 1 + .25f * (float) Math.sin(Math.PI * progress);
             float cx = x + 4.5f, cy = y + 4.5f;
-            var pose = g.pose();
+            var pose = CompatPose.of(g);
             pose.pushMatrix().translate(cx, cy).scale(scale).translate(-cx, -cy);
             Icon.HEART.draw(g, x, y, color);
-            Icon.HEART_FILLED.draw(g, x, y, ARGB.multiplyAlpha(ROSE, Math.min(1, progress * 3)));
+            Icon.HEART_FILLED.draw(g, x, y, CompatColor.multiplyAlpha(ROSE, Math.min(1, progress * 3)));
             pose.popMatrix();
         }
     }
@@ -373,13 +369,13 @@ final class MusicUi {
         }
 
         @Override
-        void drawSymbol(GuiGraphicsExtractor g, int x, int y, int color) {
+        void drawSymbol(GuiGraphics g, int x, int y, int color) {
             Icon.CROWN.draw(g, x, y, BuildTrust.crownColor());
         }
 
         @Override
-        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
-            super.extractWidgetRenderState(g, mx, my, dt);
+        protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
+            super.renderWidget(g, mx, my, dt);
             if (BuildTrust.updateAvailable()) rounded(g, getRight() - 6, getY() + 2, 4, 4, 2, ROSE);
         }
     }
@@ -408,10 +404,10 @@ final class MusicUi {
         }
 
         @Override
-        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
             int x = getX(), y = getY();
             beginMotion(g);
-            int fill = ARGB.srgbLerp(hover, playing ? ACCENT_SOFT : SURFACE, playing ? ACCENT_HOVER : HOVER);
+            int fill = CompatColor.srgbLerp(hover, playing ? ACCENT_SOFT : SURFACE, playing ? ACCENT_HOVER : HOVER);
             if (keyboardFocus()) outline(g, x, y, width, height, 5, ACCENT, fill);
             else rounded(g, x, y, width, height, 5, fill);
             int iconY = y + (height - 17) / 2;
@@ -429,7 +425,7 @@ final class MusicUi {
                 text(g, font, title, left, lineY, titleColor, Type.STRONG, textWidth);
             }
             text(g, font, end, x + width - tailWidth - 6, lineY, DIM, Type.BODY, tailWidth);
-            g.pose().popMatrix();
+            CompatPose.of(g).popMatrix();
         }
     }
 
@@ -508,8 +504,9 @@ final class MusicUi {
         }
 
         @Override
-        public void onRelease(MouseButtonEvent event) {
-            super.onRelease(event);
+        public void onRelease(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+            super.onRelease(mouseX, mouseY);
             flush();
         }
 
@@ -520,7 +517,8 @@ final class MusicUi {
         }
 
         @Override
-        public boolean keyPressed(KeyEvent event) {
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
             if (fineSteps && active && isFocused()
                     && (event.key() == GLFW.GLFW_KEY_LEFT || event.key() == GLFW.GLFW_KEY_RIGHT)) {
                 int step = event.key() == GLFW.GLFW_KEY_LEFT ? -1 : 1;
@@ -530,7 +528,7 @@ final class MusicUi {
                 flush();
                 return true;
             }
-            boolean handled = super.keyPressed(event);
+            boolean handled = super.keyPressed(keyCode, scanCode, modifiers);
             if (handled) flush();
             return handled;
         }
@@ -543,13 +541,13 @@ final class MusicUi {
         }
 
         @Override
-        public void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        public void renderWidget(GuiGraphics g, int mx, int my, float dt) {
             Font font = Minecraft.getInstance().font;
             int x = getX(), y = getY() + height / 2, end = x + width - 4;
             if (showValue) {
                 int labelX = stackedValue ? x + (width - valueWidth) / 2 : x + valueOffset - valueWidth;
                 int labelY = stackedValue ? getY() + 1 : y - 4;
-                g.text(font, valueText, labelX, labelY, active ? TEXT : DIM, false);
+                g.drawString(font, valueText, labelX, labelY, active ? TEXT : DIM, false);
             }
             if (stackedValue) y = getY() + height - 5;
             drawMeter(g, x + 4, y, end, (float) value, active ? ACCENT : DIM, true, isHoveredOrFocused() && active);
@@ -559,6 +557,7 @@ final class MusicUi {
     abstract static class MusicScreen extends Screen {
         final MusicMod mod;
         Screen parent;
+        private boolean renderingChildren;
 
         MusicScreen(MusicMod mod, Screen parent, String label) {
             super(Component.literal(label));
@@ -570,12 +569,22 @@ final class MusicUi {
         public boolean isPauseScreen() { return parent != null && parent.isPauseScreen(); }
 
         @Override
-        public void onClose() { minecraft.gui.setScreen(parent); }
+        public void onClose() { minecraft.setScreen(parent); }
 
         @Override
-        public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float dt) {
-            if (minecraft.level == null) extractPanorama(g, dt);
+        public void renderBackground(GuiGraphics g, int mx, int my, float dt) {
+            if (renderingChildren) return;
+            if (minecraft.level == null) renderPanorama(g, dt);
             g.fill(0, 0, width, height, 0x74121117);
+        }
+
+        @Override
+        public void render(GuiGraphics g, int mx, int my, float dt) {
+            // The caller paints the background before applying its interface scale.
+            // 1.21.1 Screen.render invokes renderBackground again before its children.
+            renderingChildren = true;
+            try { super.render(g, mx, my, dt); }
+            finally { renderingChildren = false; }
         }
 
         Control button(Rect r, String label, Icon icon, Style style, boolean showLabel, boolean left, Runnable action) {
@@ -1207,7 +1216,7 @@ final class MusicUi {
             headingReserve = 29;
             List<Preference> options = new ArrayList<>();
             options.add(new Preference("Открыть плеер", row -> valueButton(row, mod.openKeyLabel(), Icon.RIGHT, false,
-                () -> minecraft.gui.setScreen(new KeyBindsScreen(this, minecraft.options)))));
+                () -> minecraft.setScreen(new KeyBindsScreen(this, minecraft.options)))));
             for (MusicShortcuts.Action action : MusicShortcuts.Action.values()) {
                 if (action.requiresLyrics() && mod.lyrics == null) continue;
                 if (action == MusicShortcuts.Action.EDITOR_BACK) {
@@ -1281,7 +1290,7 @@ final class MusicUi {
         }
 
         private void positionHud() {
-            minecraft.gui.setScreen(new PositionScreen(mod, this, hudPreview));
+            minecraft.setScreen(new PositionScreen(mod, this, hudPreview));
         }
 
         private void accountPanel() {
@@ -1300,7 +1309,7 @@ final class MusicUi {
                 tokenInput.setMaxLength(8192);
                 tokenInput.setValue(tokenDraft);
                 tokenInput.setResponder(value -> tokenDraft = value);
-                tokenInput.addFormatter((value, cursor) -> net.minecraft.util.FormattedCharSequence.forward(
+                tokenInput.setFormatter((value, cursor) -> net.minecraft.util.FormattedCharSequence.forward(
                     tokenVisible ? value : "•".repeat(value.length()), net.minecraft.network.chat.Style.EMPTY));
                 icon(new Rect(field.right() + 4, fieldY, showWidth, 22),
                     tokenVisible ? "Скрыть токен" : "Показать токен", tokenVisible ? Icon.CLOSE : Icon.USER,
@@ -1709,13 +1718,14 @@ final class MusicUi {
         }
 
         @Override
-        public boolean keyPressed(KeyEvent event) {
+        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
             if (typing() && (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER)) {
                 setFocused(null);
                 if (tab == Tab.SEARCH) submit(0, query);
                 return true;
             }
-            return super.keyPressed(event);
+            return super.keyPressed(keyCode, scanCode, modifiers);
         }
 
         @Override
@@ -1728,18 +1738,21 @@ final class MusicUi {
         }
 
         @Override
-        public boolean mouseClicked(MouseButtonEvent event, boolean twice) {
-            return super.mouseClicked(layoutEvent(event), twice);
+        public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
+            return super.mouseClicked(layoutEvent(event).x(), layoutEvent(event).y(), layoutEvent(event).button());
         }
 
         @Override
-        public boolean mouseReleased(MouseButtonEvent event) {
-            return super.mouseReleased(layoutEvent(event));
+        public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
+            return super.mouseReleased(layoutEvent(event).x(), layoutEvent(event).y(), layoutEvent(event).button());
         }
 
         @Override
-        public boolean mouseDragged(MouseButtonEvent event, double x, double y) {
-            return super.mouseDragged(layoutEvent(event), x / interfaceScale, y / interfaceScale);
+        public boolean mouseDragged(double mouseX, double mouseY, int button, double x, double y) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
+            return super.mouseDragged(layoutEvent(event).x(), layoutEvent(event).y(), layoutEvent(event).button(), x / interfaceScale, y / interfaceScale);
         }
 
         @Override
@@ -1792,10 +1805,11 @@ final class MusicUi {
         }
 
         @Override
-        public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        public void render(GuiGraphics g, int mx, int my, float dt) {
+            renderBackground(g, mx, my, dt);
             mx = (int) (mx / interfaceScale);
             my = (int) (my / interfaceScale);
-            g.pose().pushMatrix().scale(interfaceScale);
+            CompatPose.of(g).pushMatrix().scale(interfaceScale);
             drawFrame(g);
             switch (tab) {
                 case HOME -> {
@@ -1813,32 +1827,32 @@ final class MusicUi {
             }
             if (extraHistory != null) drawHistory(g, extraHistory);
             drawTransport(g, mx, my);
-            super.extractRenderState(g, mx, my, dt);
+            super.render(g, mx, my, dt);
             drawCredit(g);
-            g.pose().popMatrix();
+            CompatPose.of(g).popMatrix();
         }
 
-        private void drawCredit(GuiGraphicsExtractor g) {
+        private void drawCredit(GuiGraphics g) {
             if (creditCrown == null) return;
             creditCrown.hint(BuildTrust.crownMessage());
             if (creditShownAt < 0) return;
             long age = Util.getMillis() - creditShownAt;
             if (age >= 3100) return;
-            g.nextStratum();
+            g.flush();
             int x = frame.right() - 147;
             int y = frame.y + 46 + Math.round(6 * Math.max(0, 1 - age / 170f));
             int width = 137, height = 35;
             float fade = Math.min(1, (3100 - age) / 280f);
             int crown = BuildTrust.crownColor();
-            outline(g, x, y, width, height, 7, ARGB.multiplyAlpha(crown, fade), ARGB.multiplyAlpha(0xff322820, fade));
-            Icon.CROWN.draw(g, x + 9, y + 12, ARGB.multiplyAlpha(crown, fade));
+            outline(g, x, y, width, height, 7, CompatColor.multiplyAlpha(crown, fade), CompatColor.multiplyAlpha(0xff322820, fade));
+            Icon.CROWN.draw(g, x + 9, y + 12, CompatColor.multiplyAlpha(crown, fade));
             text(g, font, BuildTrust.modified() ? "Неофициальная сборка" : "King220l", x + 25, y + 7,
-                ARGB.multiplyAlpha(crown, fade), Type.STRONG, width - 31);
+                CompatColor.multiplyAlpha(crown, fade), Type.STRONG, width - 31);
             text(g, font, BuildTrust.updateAvailable() ? "Доступно обновление" : BuildTrust.modified() ? "Файл изменён" : "Оригинальный мод",
-                x + 25, y + 19, ARGB.multiplyAlpha(TEXT, fade), Type.BODY, width - 31);
+                x + 25, y + 19, CompatColor.multiplyAlpha(TEXT, fade), Type.BODY, width - 31);
             if (age >= 590) return;
             float progress = age / 590f;
-            int spark = ARGB.multiplyAlpha(crown, 1 - progress);
+            int spark = CompatColor.multiplyAlpha(crown, 1 - progress);
             int cx = creditCrown.getX() + 12, cy = creditCrown.getY() + 12;
             for (int i = 0; i < 7; i++) {
                 double angle = i * Math.TAU / 7 + .27;
@@ -1850,7 +1864,7 @@ final class MusicUi {
             }
         }
 
-        private void drawFrame(GuiGraphicsExtractor g) {
+        private void drawFrame(GuiGraphics g) {
             rounded(g, frame.x - 2, frame.y + 3, frame.w + 4, frame.h + 4, 12, 0x7c000000);
             outline(g, frame.x, frame.y, frame.w, frame.h, 11, BORDER, BASE);
             rounded(g, rail.x, rail.y, rail.w, rail.h, 8, RAIL);
@@ -1866,7 +1880,7 @@ final class MusicUi {
                 rounded(g, frame.right() - 85, frame.y + 13, 4, 4, 2, ACCENT);
         }
 
-        private void drawHome(GuiGraphicsExtractor g) {
+        private void drawHome(GuiGraphics g) {
             if (hero == null) return;
             rounded(g, hero.x, hero.y, hero.w, hero.h, 8, 0xff493149);
             int x = hero.x + 1, y = hero.y + 1, w = hero.w - 2, h = hero.h - 2;
@@ -1874,7 +1888,7 @@ final class MusicUi {
             int sourceH = Math.min(724, Math.max(1, h * 2172 / Math.max(1, w)));
             int sourceX = (2172 - sourceW) * 4 / 5;
             int sourceY = (724 - sourceH) / 2;
-            g.blit(RenderPipelines.GUI_TEXTURED, BANNER, x, y, sourceX, sourceY, w, h, sourceW, sourceH, 2172, 724);
+            g.blit(BANNER, x, y, w, h, (float) sourceX, (float) sourceY, sourceW, sourceH, 2172, 724);
             g.fillGradient(x, y, x + w, y + h, 0x38221b29, 0x83121019);
             maskCorners(g, x, y, w, h, 7, BASE);
             boolean local = !signedIn;
@@ -1897,7 +1911,7 @@ final class MusicUi {
             }
         }
 
-        private void drawListing(GuiGraphicsExtractor g) {
+        private void drawListing(GuiGraphics g) {
             String title = selectedPlaylist != null ? selectedPlaylist.title()
                 : selectedCollection != null ? selectedCollection.title()
                 : switch (tab) {
@@ -1942,7 +1956,7 @@ final class MusicUi {
             };
         }
 
-        private void drawHistory(GuiGraphicsExtractor g, Rect box) {
+        private void drawHistory(GuiGraphics g, Rect box) {
             boolean split = extraHistory != null;
             int x = box.x;
             int y = box.y;
@@ -1960,7 +1974,7 @@ final class MusicUi {
             scroll(g, box.right() - (split ? 4 : 1), box.y + 28, box.bottom() - 4, historyOffset, historyRows.size(), count);
         }
 
-        private void drawSettings(GuiGraphicsExtractor g) {
+        private void drawSettings(GuiGraphics g) {
             heading(g, "Настройки", headingReserve);
             for (PreferenceRow item : settingRows) {
                 Rect row = item.bounds;
@@ -1986,7 +2000,7 @@ final class MusicUi {
                 settingsOffset, visiblePreferences, preferenceCount);
         }
 
-        private void drawAccount(GuiGraphicsExtractor g) {
+        private void drawAccount(GuiGraphics g) {
             heading(g, "Аккаунты", 0);
             Rect box = accountDetails;
             int cardHeight = signedIn ? 79 : Math.min(box.h, 143);
@@ -2011,11 +2025,11 @@ final class MusicUi {
             }
         }
 
-        private void heading(GuiGraphicsExtractor g, String title, int rightReserve) {
+        private void heading(GuiGraphics g, String title, int rightReserve) {
             text(g, font, title, content.x, content.y + 1, TEXT, Type.TITLE, content.w - rightReserve);
         }
 
-        private void drawTransport(GuiGraphicsExtractor g, int mx, int my) {
+        private void drawTransport(GuiGraphics g, int mx, int my) {
             int left = frame.x + 9;
             int right = frame.right() - 9;
             int y = footer + 7;
@@ -2033,7 +2047,7 @@ final class MusicUi {
             text(g, font, name, titleX, y + (subtitle.isEmpty() ? 9 : 4), TEXT, Type.STRONG, titleW);
             text(g, font, subtitle, titleX, y + 16, player.error().isEmpty() ? MUTED : ROSE, Type.BODY, titleW);
             if (!player.error().isEmpty() && new Rect(titleX, y + 12, titleW, 15).contains(mx, my)) {
-                g.setTooltipForNextFrame(font, Component.literal(player.error()), screenX(g, mx), screenY(g, my));
+                CompatUi.tooltip(g, font, Component.literal(player.error()), screenX(g, mx), screenY(g, my));
             }
         }
     }
@@ -2047,15 +2061,15 @@ final class MusicUi {
         }
 
         @Override
-        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
             int x = getX(), y = getY();
             beginMotion(g);
-            int fill = ARGB.srgbLerp(hover, enabled ? ACCENT_SOFT : ELEVATED, enabled ? ACCENT_HOVER : HOVER);
+            int fill = CompatColor.srgbLerp(hover, enabled ? ACCENT_SOFT : ELEVATED, enabled ? ACCENT_HOVER : HOVER);
             int rim = keyboardFocus() ? ACCENT_LIGHT
-                : ARGB.srgbLerp(hover, enabled ? ACCENT_EDGE : BORDER, enabled ? ACCENT : BORDER_HOVER);
+                : CompatColor.srgbLerp(hover, enabled ? ACCENT_EDGE : BORDER, enabled ? ACCENT : BORDER_HOVER);
             outline(g, x, y, width, height, 7, rim, fill);
             rounded(g, x + (enabled ? width - 12 : 3), y + 3, 9, 9, 4, enabled ? ACCENT : MUTED);
-            g.pose().popMatrix();
+            CompatPose.of(g).popMatrix();
         }
     }
 
@@ -2101,7 +2115,7 @@ final class MusicUi {
         Rect previewBounds() { return hudBounds(width, height, mod.settings); }
 
         @Override
-        void drawPreview(GuiGraphicsExtractor g) {
+        void drawPreview(GuiGraphics g) {
             drawHud(g, font, mod.settings, EXAMPLE, preview.paused(), preview.position());
         }
 
@@ -2128,14 +2142,14 @@ final class MusicUi {
         return HudPlacementScreen.bounds(width, height, w, h, settings.x, settings.y);
     }
 
-    static void drawHud(GuiGraphicsExtractor g, Font font, MusicSettings settings, MusicApi.Track track, boolean paused, long positionMs) {
+    static void drawHud(GuiGraphics g, Font font, MusicSettings settings, MusicApi.Track track, boolean paused, long positionMs) {
         Rect bounds = hudBounds(g.guiWidth(), g.guiHeight(), settings);
         drawHudCard(g, font, settings, track, paused, positionMs, bounds.x, bounds.y, hudScale(g.guiWidth(), settings));
     }
 
-    private static void drawHudCard(GuiGraphicsExtractor g, Font font, MusicSettings settings, MusicApi.Track track,
+    private static void drawHudCard(GuiGraphics g, Font font, MusicSettings settings, MusicApi.Track track,
                                     boolean paused, long positionMs, int x, int y, float scale) {
-        var pose = g.pose();
+        var pose = CompatPose.of(g);
         pose.pushMatrix();
         pose.translate(x, y);
         pose.scale(scale, scale);
@@ -2152,7 +2166,7 @@ final class MusicUi {
         pose.popMatrix();
     }
 
-    private static void drawMeter(GuiGraphicsExtractor g, int start, int y, int end, float value, int color,
+    private static void drawMeter(GuiGraphics g, int start, int y, int end, float value, int color,
                                   boolean thumb, boolean hover) {
         if (end - start < 3) return;
         int center = start + Math.round((end - start) * Math.clamp(value, 0, 1));
@@ -2164,7 +2178,7 @@ final class MusicUi {
         }
     }
 
-    private static void scroll(GuiGraphicsExtractor g, int x, int y, int end, int offset, int visible, int total) {
+    private static void scroll(GuiGraphics g, int x, int y, int end, int offset, int visible, int total) {
         if (visible < 1 || total <= visible || end - y < 8) return;
         int h = end - y;
         int thumb = Math.max(6, h * visible / total);
@@ -2179,9 +2193,9 @@ final class MusicUi {
         return (seconds / 60) + (part < 10 ? ":0" : ":") + part;
     }
 
-    private static int screenX(GuiGraphicsExtractor g, int x) { return Math.round(g.pose().m00() * x + g.pose().m20()); }
+    private static int screenX(GuiGraphics g, int x) { return Math.round(CompatPose.of(g).m00() * x + CompatPose.of(g).m20()); }
 
-    private static int screenY(GuiGraphicsExtractor g, int y) { return Math.round(g.pose().m11() * y + g.pose().m21()); }
+    private static int screenY(GuiGraphics g, int y) { return Math.round(CompatPose.of(g).m11() * y + CompatPose.of(g).m21()); }
 
     private static String trackCount(int count) {
         int last = count % 10, lastTwo = count % 100;

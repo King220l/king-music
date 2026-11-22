@@ -1,7 +1,7 @@
 package studio.king220l.yamusic;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.util.List;
@@ -35,7 +35,7 @@ final class LyricsOptions {
         return List.of(
             hudToggle(screen, settings, "Текст поверх игры", settings.hud, () -> settings.hud = !settings.hud),
             new Preference("Расположение HUD", row -> screen.valueButton(row, "Переместить", Icon.POSITION, false,
-                () -> Minecraft.getInstance().gui.setScreen(new Placement(screen.mod, screen, addon)))),
+                () -> Minecraft.getInstance().setScreen(new Placement(screen.mod, screen, addon)))),
             new Preference("Оформление HUD", row -> screen.valueButton(row, settings.hudStyle.label, null, false,
                 () -> change(screen, settings, () -> settings.hudStyle = settings.hudStyle.next()))),
             hudToggle(screen, settings, "Уже спетая строка", settings.showPrevious, () -> settings.showPrevious = !settings.showPrevious),
@@ -134,7 +134,7 @@ final class LyricsOptions {
         }
 
         @Override
-        void drawPreview(GuiGraphicsExtractor g) { hud.draw(g, font, previewBounds()); }
+        void drawPreview(GuiGraphics g) { hud.draw(g, font, previewBounds()); }
 
         @Override void movePreview(double x, double y) {
             settings.x = x;

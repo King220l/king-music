@@ -1,12 +1,10 @@
 package studio.king220l.yamusic;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.client.renderer.RenderPipelines;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FontDescription;
-import net.minecraft.resources.Identifier;
-import net.minecraft.util.ARGB;
+import net.minecraft.resources.ResourceLocation;
+import studio.king220l.yamusic.CompatColor;
 
 final class MusicTheme {
     static final int BASE = 0xff171619;
@@ -22,20 +20,20 @@ final class MusicTheme {
     static final int KING_GOLD = 0xffffd465;
     static final int INK = 0xff251e22;
     static final int ACCENT = KING_GOLD;
-    static final int ACCENT_LIGHT = ARGB.srgbLerp(.30f, ACCENT, TEXT);
-    static final int ACCENT_SOFT = ARGB.srgbLerp(.18f, ELEVATED, ACCENT);
-    static final int ACCENT_HOVER = ARGB.srgbLerp(.29f, HOVER, ACCENT);
-    static final int ACCENT_EDGE = ARGB.srgbLerp(.56f, BORDER, ACCENT);
+    static final int ACCENT_LIGHT = CompatColor.srgbLerp(.30f, ACCENT, TEXT);
+    static final int ACCENT_SOFT = CompatColor.srgbLerp(.18f, ELEVATED, ACCENT);
+    static final int ACCENT_HOVER = CompatColor.srgbLerp(.29f, HOVER, ACCENT);
+    static final int ACCENT_EDGE = CompatColor.srgbLerp(.56f, BORDER, ACCENT);
     static final int ROSE = 0xfff286aa;
-    private static final Identifier EMBLEM = Identifier.fromNamespaceAndPath("yamusic", "icon.png");
+    private static final ResourceLocation EMBLEM = ResourceLocation.fromNamespaceAndPath("yamusic", "icon.png");
     private static final int[][] CORNERS = roundedCorners();
 
     enum Type {
         BODY("regular"), STRONG("bold"), TITLE("title"), HERO("hero");
-        final FontDescription.Resource font;
+        final ResourceLocation font;
 
         Type(String file) {
-            font = new FontDescription.Resource(Identifier.fromNamespaceAndPath("yamusic", file));
+            font = ResourceLocation.fromNamespaceAndPath("yamusic", file);
         }
     }
 
@@ -103,7 +101,7 @@ final class MusicTheme {
             }
         }
 
-        void draw(GuiGraphicsExtractor g, int x, int y, int color) {
+        void draw(GuiGraphics g, int x, int y, int color) {
             for (int row = 0; row < spans.length; row++) {
                 int[] line = spans[row];
                 for (int i = 0; i < line.length; i += 2) {
@@ -124,7 +122,7 @@ final class MusicTheme {
         return font.width(styled(value, type));
     }
 
-    static void text(GuiGraphicsExtractor g, Font font, String value, int x, int y, int color, Type type, int available) {
+    static void text(GuiGraphics g, Font font, String value, int x, int y, int color, Type type, int available) {
         if (available <= 0 || value.isEmpty()) return;
         Component line = styled(value, type);
         if (font.width(line) > available) {
@@ -134,10 +132,10 @@ final class MusicTheme {
             line = Component.empty().append(font.substrByWidth(line, limit).getString())
                 .append("…").withStyle(style -> style.withFont(type.font));
         }
-        g.text(font, line, x, y, color, false);
+        g.drawString(font, line, x, y, color, false);
     }
 
-    static void rounded(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
+    static void rounded(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
         if (w <= 0 || h <= 0) return;
         int r = Math.min(radius, Math.min(w, h) / 2);
         if (h > r * 2) g.fill(x, y + r, x + w, y + h - r, color);
@@ -169,7 +167,7 @@ final class MusicTheme {
         return corners;
     }
 
-    static void maskCorners(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
+    static void maskCorners(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
         for (int row = 0; row < radius; row++) {
             int inset = cornerInset(radius, row);
             if (inset == 0) continue;
@@ -180,16 +178,16 @@ final class MusicTheme {
         }
     }
 
-    static void outline(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int rim, int fill) {
+    static void outline(GuiGraphics g, int x, int y, int w, int h, int radius, int rim, int fill) {
         rounded(g, x, y, w, h, radius, rim);
         rounded(g, x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1), fill);
     }
 
-    static void emblem(GuiGraphicsExtractor g, int x, int y, int size) {
-        g.blit(RenderPipelines.GUI_TEXTURED, EMBLEM, x, y, 0, 0, size, size, 128, 128, 128, 128);
+    static void emblem(GuiGraphics g, int x, int y, int size) {
+        g.blit(EMBLEM, x, y, size, size, 0f, 0f, 128, 128, 128, 128);
     }
 
-    static void drawRecord(GuiGraphicsExtractor g, int x, int y, int size, long positionMs) {
+    static void drawRecord(GuiGraphics g, int x, int y, int size, long positionMs) {
         long cycle = positionMs % 2600L;
         if (cycle == 0) {
             emblem(g, x, y, size);
@@ -197,7 +195,7 @@ final class MusicTheme {
         }
         float angle = cycle * (float) (Math.TAU / 2600);
         float cx = x + size * .5f, cy = y + size * .5f;
-        var pose = g.pose();
+        var pose = CompatPose.of(g);
         pose.pushMatrix().translate(cx, cy).rotate(angle).translate(-cx, -cy);
         emblem(g, x, y, size);
         pose.popMatrix();

@@ -2,11 +2,11 @@ package studio.king220l.yamusic;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.ARGB;
+import studio.king220l.yamusic.CompatColor;
 
 import static studio.king220l.yamusic.MusicTheme.*;
 import static studio.king220l.yamusic.MusicUi.Rect;
@@ -41,7 +41,7 @@ final class VisualizerPanel extends AbstractWidget {
     }
 
     @Override
-    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float partial) {
+    protected void renderWidget(GuiGraphics g, int mx, int my, float partial) {
         int x = getX(), y = getY();
         outline(g, x, y, width, height, 8, BORDER, RAIL);
         if (width < 46 || height < 34) return;
@@ -58,7 +58,7 @@ final class VisualizerPanel extends AbstractWidget {
         float[] values = frame == null ? null : frame.values();
         if (mode.input != VisualizerAddon.Input.WAVEFORM) updateLevels(values, elapsed);
         Font font = Minecraft.getInstance().font;
-        g.enableScissor(plot.x(), plot.y(), plot.right(), plot.bottom());
+        CompatPose.scissor(g, plot.x(), plot.y(), plot.right(), plot.bottom());
         switch (mode) {
             case BARS -> {
                 drawGrid(g, plot);
@@ -90,7 +90,7 @@ final class VisualizerPanel extends AbstractWidget {
         }
     }
 
-    private static void drawGrid(GuiGraphicsExtractor g, Rect plot) {
+    private static void drawGrid(GuiGraphics g, Rect plot) {
         for (int row = 1; row < 5; row++) {
             int y = plot.y() + row * plot.h() / 5;
             g.fill(plot.x(), y, plot.right(), y + 1, GRID);
@@ -101,7 +101,7 @@ final class VisualizerPanel extends AbstractWidget {
         }
     }
 
-    private void drawBars(GuiGraphicsExtractor g, Rect plot) {
+    private void drawBars(GuiGraphics g, Rect plot) {
         int x = plot.x() + 5, w = plot.w() - 10;
         int bottom = plot.bottom() - 3, travel = plot.h() - 7;
         int gap = Math.clamp(w / (levels.length * 4), 1, 6);
@@ -110,14 +110,14 @@ final class VisualizerPanel extends AbstractWidget {
             int right = x + (i + 1) * w / levels.length - (gap + 1) / 2;
             if (right <= left) continue;
             int h = Math.max(1, Math.round(levels[i] * travel));
-            int color = ARGB.srgbLerp(Math.min(1, levels[i] * 1.9f), 0xff69543b, ACCENT_LIGHT);
+            int color = CompatColor.srgbLerp(Math.min(1, levels[i] * 1.9f), 0xff69543b, ACCENT_LIGHT);
             g.fillGradient(left, bottom - h, right, bottom, color, 0xff7b502a);
             int peak = bottom - Math.round(peaks[i] * travel);
             if (peak < bottom - h) g.fill(left, peak, right, peak + 1, 0xffbd9361);
         }
     }
 
-    private void drawWave(GuiGraphicsExtractor g, Rect plot, VisualizerAddon.Frame frame, float elapsed) {
+    private void drawWave(GuiGraphics g, Rect plot, VisualizerAddon.Frame frame, float elapsed) {
         float middle = plot.y() + plot.h() * .5f;
         int axis = Math.round(middle);
         g.fill(plot.x(), axis, plot.right(), axis + 1, 0xff69543b);
@@ -133,8 +133,8 @@ final class VisualizerPanel extends AbstractWidget {
         float radius = (plot.h() * .45f) * Math.min(8, .84f / wavePeak) * waveOpacity;
         int segments = Math.min(values.length - 1, Math.max(1, plot.w() / 2));
         float lastX = plot.x(), lastY = middle - values[0] * radius;
-        int glow = ARGB.multiplyAlpha(0xffb77b3e, .33f * waveOpacity);
-        int color = ARGB.multiplyAlpha(ACCENT_LIGHT, waveOpacity);
+        int glow = CompatColor.multiplyAlpha(0xffb77b3e, .33f * waveOpacity);
+        int color = CompatColor.multiplyAlpha(ACCENT_LIGHT, waveOpacity);
         for (int i = 1; i <= segments; i++) {
             float x = plot.x() + (float) i * (plot.w() - 1) / segments;
             float y = middle - values[i * (values.length - 1) / segments] * radius;
@@ -145,7 +145,7 @@ final class VisualizerPanel extends AbstractWidget {
         }
     }
 
-    private void drawRing(GuiGraphicsExtractor g, Rect plot) {
+    private void drawRing(GuiGraphics g, Rect plot) {
         float x = plot.x() + plot.w() * .5f, y = plot.y() + plot.h() * .5f;
         float outer = Math.min(plot.w(), plot.h()) * .47f, inner = outer * .50f;
         ring(g, x, y, outer, 1, GRID);
@@ -154,14 +154,14 @@ final class VisualizerPanel extends AbstractWidget {
             int step = Math.min(i, SEGMENTS - i);
             float level = levels[(step * (levels.length - 1)) / (SEGMENTS / 2)];
             float radius = inner + 2 + (outer - inner - 2) * level;
-            int color = ARGB.srgbLerp(level, 0xff614a35, ACCENT_LIGHT);
+            int color = CompatColor.srgbLerp(level, 0xff614a35, ACCENT_LIGHT);
             line(g, x + COS[i] * inner, y + SIN[i] * inner, x + COS[i] * radius, y + SIN[i] * radius, 2, color);
         }
         ring(g, x, y, inner * .40f, 1, 0xff5a4633);
         rounded(g, Math.round(x) - 2, Math.round(y) - 2, 5, 5, 2, ACCENT);
     }
 
-    private void drawPulse(GuiGraphicsExtractor g, Rect plot, float elapsed) {
+    private void drawPulse(GuiGraphics g, Rect plot, float elapsed) {
         float x = plot.x() + plot.w() * .5f, y = plot.y() + plot.h() * .5f;
         float radius = Math.min(plot.w(), plot.h()) * .45f;
         float energy = (levels[0] + levels[1] + levels[2] + levels[3]) * .25f;
@@ -171,16 +171,16 @@ final class VisualizerPanel extends AbstractWidget {
         for (int i = 3; i > 0; i--) {
             float echo = .10f + pulse * (.65f - i * .14f);
             ring(g, x, y, center + (radius - center) * i / 3.4f, i == 1 ? 2 : 1,
-                ARGB.multiplyAlpha(ACCENT_LIGHT, echo));
+                CompatColor.multiplyAlpha(ACCENT_LIGHT, echo));
         }
-        ring(g, x, y, center, 3, ARGB.srgbLerp(pulse, 0xff8d6642, ACCENT_LIGHT));
+        ring(g, x, y, center, 3, CompatColor.srgbLerp(pulse, 0xff8d6642, ACCENT_LIGHT));
         if (center >= 6) {
             int size = Math.max(4, Math.round(center * 1.35f));
             emblem(g, Math.round(x - size * .5f), Math.round(y - size * .5f), size);
         }
     }
 
-    private void drawStereo(GuiGraphicsExtractor g, Font font, Rect plot) {
+    private void drawStereo(GuiGraphics g, Font font, Rect plot) {
         int area = Math.min(plot.h(), 80);
         int rowH = Math.clamp(area / 4, 5, 20);
         int left = plot.x() + 22, available = plot.w() - 26;
@@ -193,23 +193,23 @@ final class VisualizerPanel extends AbstractWidget {
             for (int i = 0; i < count; i++) {
                 int x = left + i * available / count;
                 int w = Math.max(1, left + (i + 1) * available / count - x - 2);
-                int litColor = ARGB.srgbLerp((float) i / (count - 1), AMBER, ACCENT_LIGHT);
+                int litColor = CompatColor.srgbLerp((float) i / (count - 1), AMBER, ACCENT_LIGHT);
                 rounded(g, x, y, w, rowH, 2, i < lit ? litColor : i == peak ? 0xff997954 : GRID);
             }
         }
     }
 
-    private static void ring(GuiGraphicsExtractor g, float x, float y, float radius, int weight, int color) {
+    private static void ring(GuiGraphics g, float x, float y, float radius, int weight, int color) {
         for (int i = 1; i <= SEGMENTS; i++) {
             line(g, x + COS[i - 1] * radius, y + SIN[i - 1] * radius,
                 x + COS[i] * radius, y + SIN[i] * radius, weight, color);
         }
     }
 
-    private static void line(GuiGraphicsExtractor g, float x, float y, float endX, float endY, int weight, int color) {
+    private static void line(GuiGraphics g, float x, float y, float endX, float endY, int weight, int color) {
         float dx = endX - x, dy = endY - y;
         int length = Math.max(1, (int) Math.ceil(Math.hypot(dx, dy)));
-        var pose = g.pose();
+        var pose = CompatPose.of(g);
         pose.pushMatrix().translate(x, y).rotate((float) Math.atan2(dy, dx));
         g.fill(0, -weight / 2, length, (weight + 1) / 2, color);
         pose.popMatrix();

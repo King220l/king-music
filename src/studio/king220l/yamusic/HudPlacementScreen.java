@@ -1,9 +1,9 @@
 package studio.king220l.yamusic;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.MouseButtonEvent;
+import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -32,7 +32,7 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     abstract Rect previewBounds();
-    abstract void drawPreview(GuiGraphicsExtractor g);
+    abstract void drawPreview(GuiGraphics g);
     abstract void movePreview(double x, double y);
     abstract void resetPosition();
     abstract int sizePercent();
@@ -130,8 +130,9 @@ abstract class HudPlacementScreen extends MusicScreen {
     private static int free(int screen, int card) { return Math.max(0, screen - card - MARGIN * 2); }
 
     @Override
-    public boolean mouseClicked(MouseButtonEvent event, boolean twice) {
-        if (super.mouseClicked(event, twice)) return true;
+    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
+        if (super.mouseClicked(event.x(), event.y(), event.button())) return true;
         if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
         if (toolbar.contains(event.x(), event.y())) {
             if (event.y() < toolbar.y() + FIRST_SLIDER) startDrag(Drag.TOOLBAR, toolbar, event);
@@ -160,8 +161,9 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     @Override
-    public boolean mouseDragged(MouseButtonEvent event, double x, double y) {
-        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseDragged(event, x, y);
+    public boolean mouseDragged(double mouseX, double mouseY, int button, double x, double y) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
+        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseDragged(event.x(), event.y(), event.button(), x, y);
         if (drag == Drag.TOOLBAR) {
             moveToolbar(event.x() - dx, event.y() - dy);
             return true;
@@ -173,8 +175,9 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     @Override
-    public boolean mouseReleased(MouseButtonEvent event) {
-        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseReleased(event);
+    public boolean mouseReleased(double mouseX, double mouseY, int button) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
+        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseReleased(event.x(), event.y(), event.button());
         if (drag == Drag.HUD) save();
         drag = Drag.NONE;
         return true;
@@ -186,7 +189,7 @@ abstract class HudPlacementScreen extends MusicScreen {
         super.onClose();
     }
 
-    private boolean drawGrid(GuiGraphicsExtractor g, Rect preview) {
+    private boolean drawGrid(GuiGraphics g, Rect preview) {
         boolean snapped = false;
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 3; x++) {
@@ -208,7 +211,8 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     @Override
-    public final void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+    public final void render(GuiGraphics g, int mx, int my, float dt) {
+        renderBackground(g, mx, my, dt);
         Rect preview = previewBounds();
         boolean snapped = drawGrid(g, preview);
         drawPreview(g);
@@ -216,12 +220,12 @@ abstract class HudPlacementScreen extends MusicScreen {
             g.fill(preview.x() + 5, preview.y() - 2, preview.right() - 5, preview.y() - 1, ACCENT);
             g.fill(preview.x() + 5, preview.bottom() + 1, preview.right() - 5, preview.bottom() + 2, ACCENT);
         }
-        g.nextStratum();
+        g.flush();
         outline(g, toolbar.x(), toolbar.y(), toolbar.w(), toolbar.h(), 8, BORDER, BASE);
         Rect grip = titleGrip();
         if (drag == Drag.TOOLBAR || drag == Drag.NONE && grip.contains(mx, my)) {
             rounded(g, grip.x(), grip.y(), grip.w(), grip.h(), 6, drag == Drag.TOOLBAR ? ACCENT_SOFT : RAIL);
-            if (drag == Drag.NONE) g.setTooltipForNextFrame(font, Component.literal("Перетащи панель за заголовок"), mx, my);
+            if (drag == Drag.NONE) CompatUi.tooltip(g, font, Component.literal("Перетащи панель за заголовок"), mx, my);
         }
         Icon.POSITION.draw(g, toolbar.x() + 10, toolbar.y() + 12, ACCENT);
         text(g, font, getTitle().getString(), toolbar.x() + 25, toolbar.y() + 12, TEXT, Type.STRONG,
@@ -232,6 +236,6 @@ abstract class HudPlacementScreen extends MusicScreen {
             option.icon.draw(g, toolbar.x() + 10, y, MUTED);
             text(g, font, option.label, toolbar.x() + 25, y, TEXT, Type.BODY, Math.min(111, toolbar.w() / 2) - 28);
         }
-        super.extractRenderState(g, mx, my, dt);
+        super.render(g, mx, my, dt);
     }
 }

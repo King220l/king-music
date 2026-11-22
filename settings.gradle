@@ -1,0 +1,9 @@
+pluginManagement {
+    repositories {
+        maven { url = 'https://maven.fabricmc.net/' }
+        gradlePluginPortal()
+    }
+}
+rootProject.name = 'king-music-fabric-1.21.1'
+include 'lyrics', 'visualizer'
+if (gradle.startParameter.projectProperties.containsKey('smokeTest')) include 'smoke-tests'

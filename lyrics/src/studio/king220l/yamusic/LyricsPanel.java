@@ -2,13 +2,13 @@ package studio.king220l.yamusic;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import net.minecraft.client.input.MouseButtonEvent;
+import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Util;
+import net.minecraft.Util;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +55,7 @@ final class LyricsPanel extends AbstractWidget {
     }
 
     @Override
-    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+    protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
         Font font = Minecraft.getInstance().font;
         int x = getX(), y = getY();
         outline(g, x, y, width, height, 8, BORDER, RAIL);
@@ -84,7 +84,7 @@ final class LyricsPanel extends AbstractWidget {
         int offset = (int) Math.round(scroll);
         var appearance = addon.appearance();
         int lineWidth = Math.max(12, width - PAD * 2 - 20);
-        g.enableScissor(x + 2, listY, x + width - 2, listY + viewport);
+        CompatPose.scissor(g, x + 2, listY, x + width - 2, listY + viewport);
         for (int i = firstAt(offset); i < rows.size(); i++) {
             Row row = rows.get(i);
             int yy = listY + row.top - offset;
@@ -103,7 +103,7 @@ final class LyricsPanel extends AbstractWidget {
             for (var words : row.words) {
                 int pixels = font.width(words);
                 int left = x + (width - lineWidth) / 2 + appearance.alignment.inset(lineWidth, pixels);
-                g.text(font, words, left, wordY, color, false);
+                g.drawString(font, words, left, wordY, color, false);
                 if (current && appearance.emphasis == LyricsSettings.Emphasis.UNDERLINE && pixels > 0)
                     g.fill(left, wordY + 10, left + pixels, wordY + 11, ACCENT);
                 wordY += LINE_HEIGHT;
@@ -133,7 +133,8 @@ final class LyricsPanel extends AbstractWidget {
     }
 
     @Override
-    public void onClick(MouseButtonEvent event, boolean twice) {
+    public void onClick(double mouseX, double mouseY) {
+            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
         var track = mod.player.track();
         if (track == null || mod.follows() || !mod.player.canSeek() || shown == null || shown != addon.data()) return;
         int y = (int) event.y() - getY();

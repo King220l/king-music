@@ -14,9 +14,8 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
@@ -26,10 +25,9 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
-import net.minecraft.client.input.KeyEvent;
-import net.minecraft.client.input.MouseButtonInfo;
-import net.minecraft.network.chat.contents.TranslatableContents;
-import net.minecraft.resources.Identifier;
+import studio.king220l.yamusic.CompatInput.KeyEvent;
+import studio.king220l.yamusic.CompatInput.MouseButtonInfo;
+import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -80,8 +78,8 @@ public final class MusicMod implements ClientModInitializer {
             extension.initialize(this);
             ClientTickEvents.END_CLIENT_TICK.register(extension::tick);
         }
-        KeyMapping.Category category = KeyMapping.Category.register(id("controls"));
-        openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.yamusic.open", GLFW.GLFW_KEY_F8, category));
+        String category = "key.categories.yamusic";
+        openKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.yamusic.open", GLFW.GLFW_KEY_F8, category));
         lyrics = FabricLoader.getInstance().getEntrypoints("king_music_lyrics", MusicLyricsExtension.class)
             .stream().findFirst().orElse(null);
         if (lyrics != null) {
@@ -100,12 +98,11 @@ public final class MusicMod implements ClientModInitializer {
         });
         ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
             if (screen instanceof PauseScreen && settings.miniPlayer) addMiniPlayer(screen, w, h);
-            if (screen instanceof TitleScreen) addTitleButton(screen, w, h);
         });
-        HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, id("track"),
+        HudRenderCallback.EVENT.register(
             (graphics, delta) -> {
                 Minecraft minecraft = Minecraft.getInstance();
-                if (minecraft.level == null || minecraft.gui.screen() != null || !player.started()
+                if (minecraft.level == null || minecraft.screen != null || !player.started()
                         || settings.hud == MusicSettings.HudMode.OFF) return;
                 long age = System.currentTimeMillis() - player.startedAt();
                 if (settings.hud == MusicSettings.HudMode.CHANGE && age >= settings.seconds * 1_000L) return;
@@ -117,7 +114,7 @@ public final class MusicMod implements ClientModInitializer {
     public static boolean handleKey(long window, int action, KeyEvent event) {
         Minecraft client = inputClient(window, action);
         if (client == null) return false;
-        return instance.handleShortcut(client, action, MusicShortcuts.Binding.of(event), instance.openKey.matches(event));
+        return instance.handleShortcut(client, action, MusicShortcuts.Binding.of(event), instance.openKey.matches(event.key(), event.scancode()));
     }
 
     public static boolean handleMouse(long window, int action, MouseButtonInfo event) {
@@ -130,13 +127,13 @@ public final class MusicMod implements ClientModInitializer {
     private static Minecraft inputClient(long window, int action) {
         if (instance == null || action == GLFW.GLFW_RELEASE) return null;
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.gui == null || client.gui.overlay() != null
-                || client.getWindow() == null || window != client.getWindow().handle()) return null;
+        if (client == null || client.getOverlay() != null
+                || client.getWindow() == null || window != client.getWindow().getWindow()) return null;
         return client;
     }
 
     private boolean handleShortcut(Minecraft client, int eventAction, MusicShortcuts.Binding chord, boolean opens) {
-        Screen current = client.gui.screen();
+        Screen current = client.screen;
         if (current instanceof MusicUi.PlayerScreen screen) {
             if (screen.recording()) {
                 if (eventAction == GLFW.GLFW_PRESS) screen.record(chord);
@@ -183,7 +180,7 @@ public final class MusicMod implements ClientModInitializer {
     }
 
     boolean matchesOpenKey(MusicShortcuts.Binding chord) {
-        InputConstants.Key key = KeyMappingHelper.getBoundKeyOf(openKey);
+        InputConstants.Key key = KeyBindingHelper.getBoundKeyOf(openKey);
         InputConstants.Type type = chord.mouse() ? InputConstants.Type.MOUSE : InputConstants.Type.KEYSYM;
         return chord.modifiers() == 0 && key.getType() == type
             && chord.key() == key.getValue();
@@ -207,42 +204,8 @@ public final class MusicMod implements ClientModInitializer {
         settings.save();
     }
 
-    private void addTitleButton(Screen screen, int width, int height) {
-        List<AbstractWidget> widgets = Screens.getWidgets(screen);
-        var button = new MusicUi.TitleIcon(width / 2 - 75, height / 4 + 96, player, () -> open(screen));
-        widgets.add(button);
-        positionTitleButton(widgets, button, width, height);
-        ScreenEvents.beforeExtract(screen).register((current, graphics, x, y, delta) ->
-            positionTitleButton(widgets, button, width, height));
-    }
-
-    private static void positionTitleButton(List<AbstractWidget> widgets, AbstractWidget button, int width, int height) {
-        int center = width / 2;
-        int rowY = height / 4 + 96;
-        for (AbstractWidget widget : widgets) {
-            if (widget.getMessage().getContents() instanceof TranslatableContents text
-                    && text.getKey().equals("menu.options") && widget.getWidth() >= 70) {
-                rowY = widget.getY() - 24;
-                break;
-            }
-        }
-        int leftIcon = center - 46;
-        for (AbstractWidget widget : widgets) {
-            if (widget == button || !widget.visible || widget.getWidth() > 24) continue;
-            int x = widget.getX();
-            if (x >= center - 62 && x < center + 45 && Math.abs(widget.getY() - rowY) <= 2) {
-                leftIcon = Math.min(leftIcon, x);
-                rowY = widget.getY();
-            }
-        }
-        int x = Math.max(6, leftIcon - 30);
-        int y = Math.clamp(rowY, 2, Math.max(2, height - 22));
-        button.setX(x);
-        button.setY(y);
-    }
-
     private void addMiniPlayer(Screen screen, int width, int height) {
-        List<AbstractWidget> widgets = Screens.getWidgets(screen);
+        List<AbstractWidget> widgets = Screens.getButtons(screen);
         int cardWidth = Math.min(172, width - 16);
         if (cardWidth < 104 || height < 65) return;
         int centered = (width - cardWidth) / 2;
@@ -266,7 +229,7 @@ public final class MusicMod implements ClientModInitializer {
                 play.hint("Воспроизвести / пауза");
                 next.hint("Следующий трек");
                 widgets.addAll(List.of(label, prev, play, next));
-                ScreenEvents.beforeExtract(screen).register((ignored, graphics, mx, my, tick) -> {
+                ScreenEvents.beforeRender(screen).register((ignored, graphics, mx, my, tick) -> {
                     label.setLabel(player.track() == null ? NAME : player.track().title());
                     prev.active = player.hasPrevious() && !follows();
                     play.active = !follows();
@@ -282,7 +245,7 @@ public final class MusicMod implements ClientModInitializer {
     void open(Screen parent) {
         if (playerScreen == null) playerScreen = new MusicUi.PlayerScreen(this, parent);
         playerScreen.parent = parent;
-        Minecraft.getInstance().gui.setScreen(playerScreen);
+        Minecraft.getInstance().setScreen(playerScreen);
     }
 
     boolean authorizing() {
@@ -412,8 +375,8 @@ public final class MusicMod implements ClientModInitializer {
         return "Не удалось связаться с Яндекс Музыкой. Попробуй ещё раз.";
     }
 
-    private static Identifier id(String path) {
-        return Identifier.fromNamespaceAndPath("yamusic", path);
+    private static ResourceLocation id(String path) {
+        return ResourceLocation.fromNamespaceAndPath("yamusic", path);
     }
 
 }

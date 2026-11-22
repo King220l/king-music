@@ -1,7 +1,13 @@
 {
   "required": true,
   "package": "studio.king220l.yamusic.mixin",
-  "compatibilityLevel": "JAVA_25",
-  "client": ["KeyboardMixin", "MouseMixin"],
-  "injectors": {"defaultRequire": 1}
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "KeyboardMixin",
+    "MouseMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "refmap": "king-music-refmap.json"
 }
