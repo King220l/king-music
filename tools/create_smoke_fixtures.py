@@ -22,9 +22,13 @@ for name, frequency in [('KING Test - Stereo Tone', 440), ('KING Test - Second T
             output.setframerate(44100)
             output.writeframes(pcm.tobytes())
     path.with_suffix('.lrc').write_text(
-        '[00:00.00]KING Music 1.21.2 test\n[00:05.00]Lyrics synchronization\n'
-        '[00:10.00]Перемотка и русский текст\n[00:20.00]Visualizer stereo test\n'
+        '[00:00.00]KING Music 1.21.3 test\n[00:05.00]Lyrics synchronization\n'
+        '[00:10.00]Перемотка и русский текст\n[00:20.00]Stereo PCM playback test\n'
         '[00:40.00]End of test track\n', encoding='utf-8')
+# MPEG-1 Layer III silent frames: exercise the actual MP3 decoder without an encoder dependency.
+mp3 = fixtures / 'KING Test - Z MP3 Silence.mp3'
+mp3.write_bytes((bytes.fromhex('fffb9000') + bytes(413)) * 2297)
+mp3.with_suffix('.lrc').write_text('[00:00.00]Synthetic MP3 decoder test\n[00:10.00]MP3 seeking\n', encoding='utf-8')
 config = ROOT / 'run/config/yamusic'
 config.mkdir(parents=True, exist_ok=True)
 settings = config / 'settings.json'

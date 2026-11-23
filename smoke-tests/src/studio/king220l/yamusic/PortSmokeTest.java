@@ -6,7 +6,6 @@ import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.Screenshot;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
@@ -18,14 +17,13 @@ import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
-import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 
-/** Optional integration mod; never included in the three distributable JARs. */
+/** Optional integration mod; never included in the distributable JARs. */
 public final class PortSmokeTest implements ClientModInitializer {
     private MusicMod mod;
     private boolean started, finished;
@@ -35,6 +33,8 @@ public final class PortSmokeTest implements ClientModInitializer {
     private static final Path REPORT = FabricLoader.getInstance().getGameDir().resolve("smoke-result.txt");
 
     public void onInitializeClient() {
+        try { Files.deleteIfExists(REPORT); }
+        catch (java.io.IOException error) { throw new IllegalStateException("Cannot reset smoke report", error); }
         ClientLifecycleEvents.CLIENT_STARTED.register(client -> started = true);
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
     }
@@ -47,7 +47,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     private void next() { stage++; entered = tick; }
     private boolean ready() { return tick - entered >= 25; }
     private void shot(Minecraft client, String name) {
-        Screenshot.grab(client.gameDirectory, "king-music-1.21.2-" + name + ".png", client.getMainRenderTarget(), ignored -> {});
+        Screenshot.grab(client.gameDirectory, "king-music-1.21.3-" + name + ".png", client.getMainRenderTarget(), ignored -> {});
     }
 
     private void tick(Minecraft client) {
@@ -60,12 +60,13 @@ public final class PortSmokeTest implements ClientModInitializer {
                 mod = (MusicMod) FabricLoader.getInstance().getEntrypoints("client", ClientModInitializer.class).stream()
                     .filter(MusicMod.class::isInstance).findFirst().orElseThrow();
                 title = client.screen;
-                check(mod.lyrics instanceof LyricsAddon && mod.visualizer instanceof VisualizerAddon, "All three modules initialized");
+                check(mod.lyrics instanceof LyricsAddon, "Core and Lyrics initialized");
+                check(mod.visualizer == null, "Visualizer is absent from the test client");
                 if (!FabricLoader.getInstance().isDevelopmentEnvironment()) {
                     BuildTrust.requireOfficial();
                     check(!BuildTrust.modified(), "Production JAR hashes verified by Ed25519 manifest");
                 }
-                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.2 title layout");
+                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.3 title layout");
                 check(MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
                     new CompatInput.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
                 check(client.screen instanceof MusicUi.PlayerScreen, "F8 opens the player");
@@ -102,7 +103,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                 edit.setValue("Integration editor test\nРусский текст\nThird line");
                 check(edit.getValue().contains("Русский"), "Multi-line editor accepts Unicode text");
                 edit.setValue("line\n".repeat(LyricsData.MAX_LINES + 2));
-                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.2");
+                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.3");
                 shot(client, "editor");
                 mod.settings.uiScale = 50;
                 mod.lyrics.edit(title);
@@ -110,17 +111,9 @@ public final class PortSmokeTest implements ClientModInitializer {
             } else if (stage == 6 && ready()) {
                 check(client.screen instanceof LyricsEditor, "Lyrics editor renders at 50 percent scale");
                 shot(client, "editor-50");
-                client.setScreen(new VisualizationScreen(mod, VisualizerAddon.Mode.BARS));
-                next();
-            } else if (stage >= 7 && stage <= 11 && ready()) {
-                var visualizer = (VisualizerAddon) mod.visualizer;
-                var mode = VisualizerAddon.Mode.values()[stage - 7];
-                var frame = visualizer.readAudio(mode.input, System.nanoTime());
-                if (frame == null) return;
-                check(frame.values().length > 0, "Visualizer " + mode + " renders and receives decoded PCM");
-                shot(client, "visualizer-" + mode.name().toLowerCase());
-                if (stage < 11) client.setScreen(new VisualizationScreen(mod, VisualizerAddon.Mode.values()[stage - 6]));
-                next();
+                client.setScreen(title);
+                stage = 12;
+                entered = tick;
             } else if (stage == 12 && ready()) {
                 mod.player.next();
                 next();
@@ -179,6 +172,20 @@ public final class PortSmokeTest implements ClientModInitializer {
                 MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
                     new CompatInput.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0));
                 check(client.screen == null, "F8 returns to the world");
+                var mp3 = LocalMusic.scan(Path.of(mod.settings.localFolder)).stream()
+                    .filter(track -> track.file().getFileName().toString().endsWith(".mp3")).findFirst().orElseThrow();
+                mod.player.play(List.of(mp3), 0);
+                next();
+            } else if (stage == 19 && ready()) {
+                check(mod.player.error().isEmpty(), "MP3 decoder reports no error");
+                if (!mod.player.started() || mod.player.elapsedMs() < 200) return;
+                check(mod.player.durationMs() > 58000, "Nested JLayer decodes and plays the synthetic MP3");
+                mod.player.seek(mod.player.track(), 10000);
+                next();
+            } else if (stage == 20 && ready()) {
+                if (!mod.player.started()) return;
+                check(mod.player.error().isEmpty() && mod.player.elapsedMs() >= 9900 && mod.player.elapsedMs() < 13000,
+                    "MP3 seek reaches the requested position");
                 finish(client);
             }
         } catch (Throwable failure) {
@@ -190,29 +197,11 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void finish(Minecraft client) throws java.io.IOException {
-        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.2 / Core + Lyrics + Visualizer"
+        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.3 / Core + Lyrics"
             + (Boolean.getBoolean("kingmusic.smoke.world") ? " / world HUDs and pause menu" : "") + "\n");
         MusicMod.LOG.info("SMOKE COMPLETE");
         finished = true;
         client.stop();
     }
 
-    private static final class VisualizationScreen extends Screen {
-        private final MusicMod mod;
-        private final VisualizerAddon.Mode mode;
-        VisualizationScreen(MusicMod mod, VisualizerAddon.Mode mode) { super(Component.literal("Visualizer integration test")); this.mod = mod; this.mode = mode; }
-        protected void init() {
-            try {
-                var field = VisualizerAddon.class.getDeclaredField("settings"); field.setAccessible(true);
-                var settings = field.get(mod.visualizer);
-                var value = settings.getClass().getDeclaredField("mode"); value.setAccessible(true); value.set(settings, mode);
-            } catch (ReflectiveOperationException error) { throw new AssertionError(error); }
-            addRenderableWidget(mod.visualizer.panel(new MusicUi.Rect(10, 25, width - 20, height - 45)));
-        }
-        public void render(GuiGraphics g, int x, int y, float delta) {
-            g.fill(0, 0, width, height, MusicTheme.BASE);
-            g.drawString(font, mode.name(), 12, 10, MusicTheme.TEXT);
-            super.render(g, x, y, delta);
-        }
-    }
 }

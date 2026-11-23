@@ -25,25 +25,12 @@ public final class PortRegression {
             Files.delete(path);
         } finally { Files.delete(directory); }
 
-        byte[] silence = new byte[4096];
-        var analyzer = new AudioVisualizer(44100);
-        check(Arrays.equals(analyzer.spectrum(silence, silence.length, 4, 1), new float[16]), "Silent PCM has no spectrum energy");
-        check(Arrays.equals(AudioVisualizer.levels(silence, silence.length, 4, 1), new float[2]), "Silent stereo has zero meters");
         byte[] pcm = new byte[4096];
         for (int frame = 0; frame < pcm.length / 4; frame++) {
             short sample = (short) (16000 * Math.sin(2 * Math.PI * 1000 * frame / 44100));
             pcm[frame * 4] = (byte) sample;
             pcm[frame * 4 + 1] = (byte) (sample >> 8);
         }
-        float[] levels = AudioVisualizer.levels(pcm, pcm.length, 4, 1);
-        check(levels[0] > .5f && levels[1] == 0, "Stereo meters distinguish active left from silent right");
-        float[] bands = analyzer.spectrum(pcm, pcm.length, 4, 1);
-        float peak = 0;
-        for (float band : bands) {
-            check(Float.isFinite(band) && band >= 0 && band <= 1, "FFT band stays finite and bounded");
-            peak = Math.max(peak, band);
-        }
-        check(peak > .5f, "1 kHz tone produces spectrum energy");
         var resampler = new PcmSpeed(2, 4);
         int count = resampler.resample(pcm, pcm.length);
         check(count == pcm.length && Arrays.equals(Arrays.copyOf(resampler.bytes(), count), pcm), "Normal speed preserves stereo PCM exactly");

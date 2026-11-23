@@ -1,4 +1,4 @@
-"""Check the three remapped release candidates without installing or publishing them."""
+"""Check the two remapped release candidates without installing or publishing them."""
 import hashlib
 import io
 import json
@@ -8,9 +8,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = {
-    'yamusic': ROOT / 'build/libs/King-Music-0.5.16-Fabric-1.21.2.jar',
-    'king_music_lyrics': ROOT / 'lyrics/build/libs/King-Music-Lyrics-0.1.5-Fabric-1.21.2.jar',
-    'king_music_visualizer': ROOT / 'visualizer/build/libs/King-Music-Visualizer-0.1.1-Fabric-1.21.2.jar',
+    'yamusic': ROOT / 'build/libs/King-Music-0.5.16-Fabric-1.21.3.jar',
+    'king_music_lyrics': ROOT / 'lyrics/build/libs/King-Music-Lyrics-0.1.5-Fabric-1.21.3.jar',
 }
 
 def classes(archive):
@@ -33,7 +32,7 @@ def verify():
             assert archive.testzip() is None, f'Corrupt archive: {path}'
             metadata = json.loads(archive.read('fabric.mod.json'))
             assert metadata['id'] == mod_id
-            assert metadata['depends']['minecraft'] == '=1.21.2'
+            assert metadata['depends']['minecraft'] == '=1.21.3'
             assert metadata['depends']['java'] == '>=21'
             assert metadata['environment'] == 'client'
             assert metadata['icon'] in archive.namelist()

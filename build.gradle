@@ -59,22 +59,21 @@ loom {
     }
 }
 
-// Run all three modules together without installing anything into a player's profile.
+// Run Core and Lyrics together without installing anything into a player's profile.
 dependencies {
-    runtimeOnly files(project(':lyrics').sourceSets.main.output, project(':visualizer').sourceSets.main.output)
+    runtimeOnly files(project(':lyrics').sourceSets.main.output)
 }
 loom.mods {
     yamusic { sourceSet sourceSets.main }
     king_music_lyrics { sourceSet project(':lyrics').sourceSets.main }
-    king_music_visualizer { sourceSet project(':visualizer').sourceSets.main }
 }
 
 sourceSets {
     regression {
         java.srcDirs = ['wave-tests/tools/stubs', 'wave-tests/src/test/java', 'port-tests/src',
-                        'src', 'lyrics/src', 'visualizer/src']
+                        'src', 'lyrics/src']
         java.include '**/MusicApi.java', '**/WaveHistory.java', '**/WaveHistoryTest.java',
-                     '**/LyricsData.java', '**/AudioVisualizer.java', '**/PcmSpeed.java', '**/MusicHttp.java', '**/PortRegression.java'
+                     '**/LyricsData.java', '**/PcmSpeed.java', '**/MusicHttp.java', '**/PortRegression.java'
         java.exclude { it.file == file('src/studio/king220l/yamusic/MusicApi.java') }
     }
 }
@@ -92,7 +91,6 @@ if (findProject(':smoke-tests') != null) {
     project(':smoke-tests') {
         dependencies {
             implementation project(path: ':lyrics', configuration: 'namedElements')
-            implementation project(path: ':visualizer', configuration: 'namedElements')
         }
     }
     dependencies { runtimeOnly files(project(':smoke-tests').sourceSets.main.output) }

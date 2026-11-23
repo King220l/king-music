@@ -11,4 +11,5 @@ __pycache__/
 config/
 run/
 /run-production/
+/run-production-core-lyrics/
 /cloud-panel/
