@@ -47,7 +47,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     private void next() { stage++; entered = tick; }
     private boolean ready() { return tick - entered >= 25; }
     private void shot(Minecraft client, String name) {
-        Screenshot.grab(client.gameDirectory, "king-music-1.21.3-" + name + ".png", client.getMainRenderTarget(), ignored -> {});
+        Screenshot.grab(client.gameDirectory, "king-music-1.21.4-" + name + ".png", client.getMainRenderTarget(), ignored -> {});
     }
 
     private void tick(Minecraft client) {
@@ -66,7 +66,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                     BuildTrust.requireOfficial();
                     check(!BuildTrust.modified(), "Production JAR hashes verified by Ed25519 manifest");
                 }
-                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.3 title layout");
+                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.4 title layout");
                 check(MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
                     new CompatInput.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
                 check(client.screen instanceof MusicUi.PlayerScreen, "F8 opens the player");
@@ -103,7 +103,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                 edit.setValue("Integration editor test\nРусский текст\nThird line");
                 check(edit.getValue().contains("Русский"), "Multi-line editor accepts Unicode text");
                 edit.setValue("line\n".repeat(LyricsData.MAX_LINES + 2));
-                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.3");
+                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.4");
                 shot(client, "editor");
                 mod.settings.uiScale = 50;
                 mod.lyrics.edit(title);
@@ -197,7 +197,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void finish(Minecraft client) throws java.io.IOException {
-        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.3 / Core + Lyrics"
+        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.4 / Core + Lyrics"
             + (Boolean.getBoolean("kingmusic.smoke.world") ? " / world HUDs and pause menu" : "") + "\n");
         MusicMod.LOG.info("SMOKE COMPLETE");
         finished = true;

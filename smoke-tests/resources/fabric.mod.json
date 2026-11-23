@@ -12,6 +12,6 @@
   "depends": {
     "yamusic": "*",
     "king_music_lyrics": "*",
-    "minecraft": "=1.21.3"
+    "minecraft": "=1.21.4"
   }
 }

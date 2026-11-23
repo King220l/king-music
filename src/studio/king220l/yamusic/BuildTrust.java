@@ -26,9 +26,9 @@ import java.util.concurrent.TimeUnit;
 
 final class BuildTrust {
     private static final URI MANIFEST = URI.create(
-        "https://raw.githubusercontent.com/King220l/king-music/port/fabric-1.21.3/official/1.21.3/manifest.txt");
+        "https://raw.githubusercontent.com/King220l/king-music/port/fabric-1.21.4/official/1.21.4/manifest.txt");
     private static final URI SIGNATURE = URI.create(
-        "https://raw.githubusercontent.com/King220l/king-music/port/fabric-1.21.3/official/1.21.3/manifest.sig");
+        "https://raw.githubusercontent.com/King220l/king-music/port/fabric-1.21.4/official/1.21.4/manifest.sig");
     private static final String PUBLIC_KEY =
         "MCowBQYDK2VwAyEAP1YflYO2tF+rZJtjQHPfcBDMbM6SK2yj1jYAUMsHfJc=";
     private static final List<String> MODS = List.of(

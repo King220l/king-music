@@ -1,0 +1,3 @@
+# KING Music Fabric 1.21.4 — SHA-256 / Ed25519
+abf48f78e05ca4e22c4ce6f8629400121d7455b996e26193437505f747008456  King-Music-0.5.16-Fabric-1.21.4.jar
+f1ec8b5792f9cf3de8e0096b86e99a11e7fa4a92bfe26b3abfd09eec756691d4  King-Music-Lyrics-0.1.5-Fabric-1.21.4.jar
