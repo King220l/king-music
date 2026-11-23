@@ -13,7 +13,7 @@ Fabric API 0.119.4+1.21.4, Loom 1.8.13, Gradle 8.10.2 and Mojang mappings.
 - Core and Lyrics build successfully; both production JARs pass ZIP, metadata,
   class-version and remapped input-mixin checks.
 - 25 automated checks passed: 18 upstream Wave checks and 7 LRC/PCM/HTTP checks.
-- A fresh test client without Visualizer passed development testing and 27
+- A fresh test client without Visualizer passed development testing and 30
   production assertions, including Ed25519 trust, F8, WAV/MP3 playback and seek,
   pause, Unicode LRC editing and line limits, 50% UI scale, next/previous tracks,
   in-world track/lyrics HUDs and a pause mini-player clear of vanilla buttons.
@@ -24,6 +24,19 @@ Fabric API 0.119.4+1.21.4, Loom 1.8.13, Gradle 8.10.2 and Mojang mappings.
 Signed SHA-256 hashes for exactly two JARs are in `official/1.21.4`. The existing
 local Ed25519 key was used without exporting it. No release has been published;
 previous tags, branches and published JARs remain untouched.
+
+## 1.21.4 clipping correction
+
+The final visual review found that Minecraft 1.21.4 automatically transforms GUI
+scissor rectangles. Applying the older manual transform a second time clipped
+Lyrics and editor text incorrectly. `CompatPose.scissor` now delegates untransformed
+coordinates to Minecraft. Both corrected JARs were rebuilt, signed and tested in
+ordinary Fabric again.
+
+Screenshots now run after `GameRenderer.render` completes, with screen transitions
+deferred until after capture. Three pixel assertions verify visible lyric/editor
+text, including 50% scale. The corrected production run passed all 30 assertions;
+its final player and editor screenshots were visually inspected.
 
 ## Reproduce
 

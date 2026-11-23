@@ -96,4 +96,5 @@ if (findProject(':smoke-tests') != null) {
     dependencies { runtimeOnly files(project(':smoke-tests').sourceSets.main.output) }
     loom.mods { king_music_smoke { sourceSet project(':smoke-tests').sourceSets.main } }
     if (project.hasProperty('smokeWorld')) loom.runs.client.vmArg '-Dkingmusic.smoke.world=true'
+    if (project.hasProperty('smokeInspect')) loom.runs.client.vmArg '-Dkingmusic.smoke.inspect=true'
 }

@@ -10,9 +10,8 @@ final class CompatPose {
     private CompatPose(PoseStack stack) { this.stack = stack; }
     static CompatPose of(GuiGraphics graphics) { return new CompatPose(graphics.pose()); }
     static void scissor(GuiGraphics graphics, int left, int top, int right, int bottom) {
-        var pose = graphics.pose().last().pose();
-        graphics.enableScissor(Math.round(pose.m00() * left + pose.m30()), Math.round(pose.m11() * top + pose.m31()),
-            Math.round(pose.m00() * right + pose.m30()), Math.round(pose.m11() * bottom + pose.m31()));
+        // Since 1.21.4 GuiGraphics transforms scissor rectangles using its current pose.
+        graphics.enableScissor(left, top, right, bottom);
     }
     CompatPose pushMatrix() { stack.pushPose(); return this; }
     void popMatrix() { stack.popPose(); }
