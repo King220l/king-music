@@ -26,7 +26,8 @@ import java.util.List;
 /** Optional integration mod; never included in the distributable JARs. */
 public final class PortSmokeTest implements ClientModInitializer {
     private static Runnable pendingFrame;
-    private boolean waitingFrame;
+    private volatile boolean waitingFrame;
+    private volatile Runnable pendingAdvance;
     private MusicMod mod;
     private boolean started, finished;
     private int tick, stage, entered;
@@ -50,13 +51,21 @@ public final class PortSmokeTest implements ClientModInitializer {
     private boolean ready() { return tick - entered >= 25; }
     private void shot(Minecraft client, String name, Runnable after) {
         waitingFrame = true;
-        pendingFrame = () -> {
-            if (name.equals("lyrics")) checkTextPixels(client, LyricsPanel.class, "interfaceScale", 30);
-            if (name.startsWith("editor")) checkTextPixels(client, MultiLineEditBox.class, "scale", 2);
-            Screenshot.grab(client.gameDirectory, "king-music-1.21.4-" + name + ".png", client.getMainRenderTarget(), ignored -> {});
-            waitingFrame = false;
-            after.run();
-        };
+        pendingFrame = () -> Screenshot.takeScreenshot(client.getMainRenderTarget(), image -> {
+            try (image) {
+                if (name.equals("lyrics")) checkTextPixels(client, LyricsPanel.class, "interfaceScale", 30, image);
+                if (name.startsWith("editor")) checkTextPixels(client, MultiLineEditBox.class, "scale", 2, image);
+                Path directory = client.gameDirectory.toPath().resolve("screenshots");
+                Files.createDirectories(directory);
+                image.writeToFile(directory.resolve("king-music-1.21.5-" + name + ".png"));
+                pendingAdvance = after;
+            } catch (Throwable failure) {
+                finished = true;
+                MusicMod.LOG.error("SMOKE frame capture failed", failure);
+                try { Files.writeString(REPORT, "FAIL frame capture: " + failure + "\n"); } catch (Exception ignored) {}
+                client.stop();
+            }
+        });
     }
 
     public static void captureCompletedFrame() {
@@ -65,8 +74,8 @@ public final class PortSmokeTest implements ClientModInitializer {
         if (capture != null) capture.run();
     }
 
-    private void checkTextPixels(Minecraft client, Class<?> widgetType, String scaleField, int topPadding) {
-        try (var image = Screenshot.takeScreenshot(client.getMainRenderTarget())) {
+    private void checkTextPixels(Minecraft client, Class<?> widgetType, String scaleField, int topPadding, com.mojang.blaze3d.platform.NativeImage image) {
+        try {
             var widget = (net.minecraft.client.gui.components.AbstractWidget) client.screen.children().stream()
                 .filter(widgetType::isInstance).findFirst().orElseThrow();
             var field = client.screen.getClass().getDeclaredField(scaleField);
@@ -87,10 +96,18 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void tick(Minecraft client) {
-        if (!started || finished || waitingFrame) return;
+        if (!started || finished) return;
         tick++;
         try {
             if (tick > 3600) throw new AssertionError("Smoke test timeout in stage " + stage);
+            if (pendingAdvance != null) {
+                Runnable advance = pendingAdvance;
+                pendingAdvance = null;
+                waitingFrame = false;
+                advance.run();
+                return;
+            }
+            if (waitingFrame) return;
             if (stage == 0) {
                 if (!(client.screen instanceof TitleScreen) || client.getOverlay() != null || tick < 40) return;
                 mod = (MusicMod) FabricLoader.getInstance().getEntrypoints("client", ClientModInitializer.class).stream()
@@ -103,7 +120,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                     BuildTrust.requireOfficial();
                     check(!BuildTrust.modified(), "Production JAR hashes verified by Ed25519 manifest");
                 }
-                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.4 title layout");
+                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.5 title layout");
                 check(MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
                     new CompatInput.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
                 check(client.screen instanceof MusicUi.PlayerScreen, "F8 opens the player");
@@ -139,7 +156,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                 edit.setValue("Integration editor test\nРусский текст\nThird line");
                 check(edit.getValue().contains("Русский"), "Multi-line editor accepts Unicode text");
                 edit.setValue("line\n".repeat(LyricsData.MAX_LINES + 2));
-                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.4");
+                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.5");
                 edit.setValue(((LyricsAddon) mod.lyrics).data().plain());
                 shot(client, "editor", () -> { mod.settings.uiScale = 50; mod.lyrics.edit(title); next(); });
             } else if (stage == 6 && ready()) {
@@ -230,7 +247,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void finish(Minecraft client) throws java.io.IOException {
-        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.4 / Core + Lyrics"
+        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.5 / Core + Lyrics"
             + (Boolean.getBoolean("kingmusic.smoke.world") ? " / world HUDs and pause menu" : "") + "\n");
         MusicMod.LOG.info("SMOKE COMPLETE");
         finished = true;
