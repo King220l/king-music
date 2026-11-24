@@ -27,7 +27,12 @@ world HUDs and pause-menu control separation. Player/Lyrics and editor screensho
 were visually inspected. Both JARs pass ZIP, metadata, bytecode and mixin checks.
 
 Hashes for exactly two JARs are signed with the existing key without exporting it.
-Production and fresh online authenticity checks are pending; no new release yet.
+All 37 production assertions passed in ordinary Fabric, including fresh online
+VERIFIED authenticity with no cached signatures. Production Lyrics screenshots
+were visually inspected. An initial first-launch check caught the missing remote
+manifest before release; after committing the signed manifest, the complete
+production run passed. Uploaded release files are downloaded and compared
+byte-for-byte before publication.
 
 ## Reproduce
 
