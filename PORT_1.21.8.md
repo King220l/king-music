@@ -18,8 +18,11 @@ Loom 1.10.5, Gradle 8.12 and official Mojang mappings.
 - ZIP integrity, exact Minecraft metadata, Java 21 classes and remapped input
   mixins were checked before signing the two JAR hashes with the existing key.
 
-Signed manifests are published on the version-specific branch. Production-JAR
-and fresh online-authenticity verification are pending; no release is published.
+The ordinary Fabric production client passed all 31 assertions, including
+VERIFIED online authenticity with no preloaded signature cache. Production
+Lyrics screenshots were visually inspected. The version-specific remote
+manifest, its Ed25519 signature and both JAR hashes are verified again before
+release publication; uploaded assets are downloaded and compared byte-for-byte.
 
 ## Reproduce
 
