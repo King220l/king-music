@@ -1,9 +1,10 @@
 plugins {
-    id 'fabric-loom' version '1.11.8'
+    id 'fabric-loom' version '1.14.10'
 }
 
 allprojects {
     apply plugin: 'fabric-loom'
+    loom { mixin { useLegacyMixinAp = true } }
     group = 'studio.king220l'
     version = new groovy.json.JsonSlurper().parse(file('resources/fabric.mod.json')).version
     base.archivesName = project == rootProject ? 'King-Music' : "King-Music-${project.name.capitalize()}"

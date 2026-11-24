@@ -27,7 +27,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonInfo;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -375,8 +375,8 @@ public final class MusicMod implements ClientModInitializer {
         return "Не удалось связаться с Яндекс Музыкой. Попробуй ещё раз.";
     }
 
-    private static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath("yamusic", path);
+    private static Identifier id(String path) {
+        return Identifier.fromNamespaceAndPath("yamusic", path);
     }
 
 }

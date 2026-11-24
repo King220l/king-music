@@ -11,7 +11,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.world.Difficulty;
-import net.minecraft.world.level.GameRules;
+import net.minecraft.world.level.gamerules.GameRules;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
@@ -57,7 +57,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                 if (name.startsWith("editor")) checkTextPixels(client, MultiLineEditBox.class, "scale", 2, image);
                 Path directory = client.gameDirectory.toPath().resolve("screenshots");
                 Files.createDirectories(directory);
-                image.writeToFile(directory.resolve("king-music-1.21.10-" + name + ".png"));
+                image.writeToFile(directory.resolve("king-music-1.21.11-" + name + ".png"));
                 pendingAdvance = after;
             } catch (Throwable failure) {
                 finished = true;
@@ -146,7 +146,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                             "Fresh production trust verified online without cached signature");
                     }
                 }
-                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.10 title layout");
+                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.11 title layout");
                 check(MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
                     new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
                 check(client.screen instanceof MusicUi.PlayerScreen, "F8 opens the player");
@@ -188,7 +188,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                     "New character event reaches the lyrics editor");
                 check(edit.getValue().contains("Ж"), "Character event inserts Unicode text");
                 edit.setValue("line\n".repeat(LyricsData.MAX_LINES + 2));
-                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.10");
+                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.11");
                 edit.setValue(((LyricsAddon) mod.lyrics).data().plain());
                 shot(client, "editor", () -> { mod.settings.uiScale = 50; mod.lyrics.edit(title); next(); });
             } else if (stage == 6 && ready()) {
@@ -279,7 +279,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void finish(Minecraft client) throws java.io.IOException {
-        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.10 / Core + Lyrics"
+        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.11 / Core + Lyrics"
             + (Boolean.getBoolean("kingmusic.smoke.world") ? " / world HUDs and pause menu" : "") + "\n");
         MusicMod.LOG.info("SMOKE COMPLETE");
         finished = true;

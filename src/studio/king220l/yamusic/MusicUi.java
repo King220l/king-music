@@ -16,10 +16,10 @@ import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import studio.king220l.yamusic.CompatColor;
-import net.minecraft.Util;
+import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
@@ -39,7 +39,7 @@ import static studio.king220l.yamusic.MusicTheme.*;
 final class MusicUi {
     private static final int ROW = 28;
     private static final int SETTING = 26;
-    private static final ResourceLocation BANNER = ResourceLocation.fromNamespaceAndPath("yamusic", "textures/gui/wave.png");
+    private static final Identifier BANNER = Identifier.fromNamespaceAndPath("yamusic", "textures/gui/wave.png");
 
     enum Style { GHOST, FILLED, SELECTED, PRIMARY, TRANSPORT }
 

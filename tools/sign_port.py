@@ -1,4 +1,4 @@
-"""Explicitly sign a verified 1.21.10 manifest with the existing local Ed25519 key.
+"""Explicitly sign a verified 1.21.11 manifest with the existing local Ed25519 key.
 
 Does not copy/export the key, install JARs, upload anything or modify old manifests.
 """
@@ -20,9 +20,9 @@ if __name__ == '__main__':
                        (ROOT / 'src/studio/king220l/yamusic/BuildTrust.java').read_text(encoding='utf-8')).group(1)
     if public != pinned:
         raise SystemExit('Local signing identity does not match the pinned public key.')
-    manifest = ROOT / 'official/1.21.10/manifest.txt'
+    manifest = ROOT / 'official/1.21.11/manifest.txt'
     manifest.parent.mkdir(parents=True, exist_ok=True)
-    manifest.write_text('# KING Music Fabric 1.21.10 — SHA-256 / Ed25519\n' + verify(), encoding='utf-8', newline='\n')
+    manifest.write_text('# KING Music Fabric 1.21.11 — SHA-256 / Ed25519\n' + verify(), encoding='utf-8', newline='\n')
     signature = manifest.with_suffix('.sig')
     java = str(Path(os.environ['JAVA_HOME']) / 'bin/java') if 'JAVA_HOME' in os.environ else 'java'
     signer = str(ROOT / 'tools/ReleaseSigner.java')

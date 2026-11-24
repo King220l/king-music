@@ -5,7 +5,7 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import studio.king220l.yamusic.CompatColor;
 
 final class MusicTheme {
@@ -27,7 +27,7 @@ final class MusicTheme {
     static final int ACCENT_HOVER = CompatColor.srgbLerp(.29f, HOVER, ACCENT);
     static final int ACCENT_EDGE = CompatColor.srgbLerp(.56f, BORDER, ACCENT);
     static final int ROSE = 0xfff286aa;
-    private static final ResourceLocation EMBLEM = ResourceLocation.fromNamespaceAndPath("yamusic", "icon.png");
+    private static final Identifier EMBLEM = Identifier.fromNamespaceAndPath("yamusic", "icon.png");
     private static final int[][] CORNERS = roundedCorners();
 
     enum Type {
@@ -35,7 +35,7 @@ final class MusicTheme {
         final FontDescription.Resource font;
 
         Type(String file) {
-            font = new FontDescription.Resource(ResourceLocation.fromNamespaceAndPath("yamusic", file));
+            font = new FontDescription.Resource(Identifier.fromNamespaceAndPath("yamusic", file));
         }
     }
 
