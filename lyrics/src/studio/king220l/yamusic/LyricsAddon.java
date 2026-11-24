@@ -20,7 +20,7 @@ import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 public final class LyricsAddon implements MusicLyricsExtension {
     private MusicMod mod;
@@ -40,7 +40,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
         settings = LyricsSettings.load(FabricLoader.getInstance().getConfigDir().resolve("yamusic/lyrics.json"));
         hud = new LyricsHud(settings);
         toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping(
-            "key.king_music_lyrics.toggle", GLFW.GLFW_KEY_UNKNOWN, category));
+            "key.king_music_lyrics.toggle", InputConstants.UNKNOWN.getValue(), category));
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath("king_music_lyrics", "lyrics"),
             (graphics, time) -> {
                 var game = Minecraft.getInstance();
@@ -158,12 +158,12 @@ public final class LyricsAddon implements MusicLyricsExtension {
     @Override
     public boolean shortcut(Minecraft game, Screen screen, MusicShortcuts.Binding key, int action) {
         if (!key.assigned() || key.mouse() && screen != null && key.modifiers() == 0
-                && key.key() <= GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
+                && (key.key() == InputConstants.MOUSE_BUTTON_LEFT || key.key() == InputConstants.MOUSE_BUTTON_RIGHT)) return false;
         if (screen instanceof LyricsEditor editor) {
             for (var binding : MusicShortcuts.Action.values()) {
                 if (!binding.worksInEditor() || !key.equals(mod.settings.shortcuts.get(binding))) continue;
                 if (editor.typing() && (binding != MusicShortcuts.Action.PLAY || key.modifiers() == 0)) return false;
-                if (action == GLFW.GLFW_PRESS) {
+                if (action == InputConstants.PRESS) {
                     if (binding == MusicShortcuts.Action.HUD) mod.settings.toggleHud();
                     else if (binding == MusicShortcuts.Action.LYRICS_HUD) toggleHud();
                     else editor.shortcut(binding);
@@ -172,7 +172,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
             }
             return false;
         }
-        if (key.modifiers() != 0 || action != GLFW.GLFW_PRESS || !matches(toggle, key)) return false;
+        if (key.modifiers() != 0 || action != InputConstants.PRESS || !matches(toggle, key)) return false;
         if (screen instanceof MusicUi.PlayerScreen player) {
             if (player.typing() || player.recording()) return false;
             player.toggleLyrics();
@@ -188,6 +188,6 @@ public final class LyricsAddon implements MusicLyricsExtension {
         var bound = KeyMappingHelper.getBoundKeyOf(mapping);
         return !mapping.isUnbound() && bound.getValue() == key.key()
             && bound.getType() == (key.mouse() ? com.mojang.blaze3d.platform.InputConstants.Type.MOUSE
-                : com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM);
+                : com.mojang.blaze3d.platform.InputConstants.Type.KEYBOARD);
     }
 }

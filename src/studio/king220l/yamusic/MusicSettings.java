@@ -74,6 +74,7 @@ final class MusicSettings {
     private volatile WaveHistory waveHistory = WaveHistory.EMPTY;
     private List<RecentTrack> recent = List.of();
     EnumMap<MusicShortcuts.Action, MusicShortcuts.Binding> shortcuts;
+    int shortcutInputVersion;
     private transient Path path;
 
     private record RecentTrack(String id, String title, String artist, long duration, String file) {
@@ -123,9 +124,14 @@ final class MusicSettings {
         if (loaded.shortcuts == null) {
             loaded.shortcuts = MusicShortcuts.migrate(options);
             loaded.shortcuts.put(MusicShortcuts.Action.EDITOR_MARK, MusicShortcuts.oldEditorMark(options));
-        } else if (!loaded.shortcuts.containsKey(MusicShortcuts.Action.EDITOR_MARK)) {
-            loaded.shortcuts.put(MusicShortcuts.Action.EDITOR_MARK, MusicShortcuts.oldEditorMark(options));
+        } else {
+            if (loaded.shortcutInputVersion < 1)
+                loaded.shortcuts.replaceAll((action, binding) -> binding == null ? action.defaultBinding : MusicShortcuts.fromLegacyGlfw(binding));
+            if (!loaded.shortcuts.containsKey(MusicShortcuts.Action.EDITOR_MARK)) {
+                loaded.shortcuts.put(MusicShortcuts.Action.EDITOR_MARK, MusicShortcuts.oldEditorMark(options));
+            }
         }
+        loaded.shortcutInputVersion = 1;
         for (MusicShortcuts.Action action : MusicShortcuts.Action.values())
             loaded.shortcuts.putIfAbsent(action, action.defaultBinding);
         return loaded;

@@ -16,7 +16,7 @@ import net.minecraft.world.level.LevelSettings;
 import net.minecraft.world.level.WorldDataConfiguration;
 import net.minecraft.world.level.levelgen.WorldOptions;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +29,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     private volatile Runnable pendingAdvance;
     private MusicMod mod;
     private boolean started, finished;
+    private volatile boolean folderReady = !Boolean.getBoolean("kingmusic.smoke.folder");
     private int tick, stage, entered;
     private long pausedAt;
     private Screen title;
@@ -56,7 +57,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                 if (name.startsWith("editor")) checkTextPixels(client, MultiLineEditBox.class, "scale", 2, image);
                 Path directory = client.gameDirectory.toPath().resolve("screenshots");
                 Files.createDirectories(directory);
-                image.writeToFile(directory.resolve("king-music-26.2-" + name + ".png"));
+                image.writeToFile(directory.resolve("king-music-26.3-" + name + ".png"));
                 pendingAdvance = after;
             } catch (Throwable failure) {
                 finished = true;
@@ -94,6 +95,42 @@ public final class PortSmokeTest implements ClientModInitializer {
         } catch (ReflectiveOperationException error) { throw new AssertionError(error); }
     }
 
+    private void exerciseLegacyShortcuts(Minecraft client) throws java.io.IOException {
+        Path legacy = REPORT.getParent().resolve("config/yamusic/legacy-input-smoke.json");
+        Files.writeString(legacy, """
+            {"language":"ru_ru","shortcuts":{
+              "PLAY":{"key":80,"modifiers":2,"mouse":false},
+              "HUD":{"key":297,"modifiers":0,"mouse":false},
+              "NEXT":{"key":1,"modifiers":0,"mouse":true}}}
+            """);
+        var loaded = MusicSettings.load(legacy, REPORT.getParent().resolve("options.txt"));
+        var play = loaded.shortcuts.get(MusicShortcuts.Action.PLAY);
+        check(play.key() == InputConstants.KEY_P && play.modifiers() == InputConstants.MOD_CONTROL,
+            "Legacy Ctrl+P migrates to SDL scancodes and modifier groups");
+        check(loaded.shortcuts.get(MusicShortcuts.Action.NEXT).key() == InputConstants.MOUSE_BUTTON_RIGHT,
+            "Legacy right mouse binding keeps its button after SDL migration");
+        var hud = loaded.shortcuts.get(MusicShortcuts.Action.HUD);
+        check(hud.key() == InputConstants.KEY_F8 && hud.label().contains("F8"),
+            "Legacy function key keeps its SDL key label");
+        loaded.save();
+        var reloaded = MusicSettings.load(legacy, REPORT.getParent().resolve("options.txt"));
+        check(reloaded.shortcutInputVersion == 1 && reloaded.shortcuts.equals(loaded.shortcuts),
+            "Migrated shortcut settings survive save and reload without a second conversion");
+        var original = mod.settings.shortcuts.put(MusicShortcuts.Action.PLAY, play);
+        try {
+            long window = client.getWindow().handle();
+            check(MusicMod.handleKey(window, InputConstants.PRESS,
+                new net.minecraft.client.input.KeyEvent(InputConstants.KEY_P, 'p', 64)) && !mod.player.paused(),
+                "Migrated shortcut works with left Ctrl in the actual player");
+            check(MusicMod.handleKey(window, InputConstants.PRESS,
+                new net.minecraft.client.input.KeyEvent(InputConstants.KEY_P, 'p', 128)) && mod.player.paused(),
+                "Migrated shortcut works with right Ctrl in the actual player");
+        } finally {
+            mod.settings.shortcuts.put(MusicShortcuts.Action.PLAY, original);
+            Files.deleteIfExists(legacy);
+        }
+    }
+
     private void exercisePlayerInput(Minecraft client) throws ReflectiveOperationException {
         var screen = (MusicUi.PlayerScreen) client.gui.screen();
         var playField = screen.getClass().getDeclaredField("play");
@@ -105,13 +142,13 @@ public final class PortSmokeTest implements ClientModInitializer {
         var click = new net.minecraft.client.input.MouseButtonEvent(
             (play.getX() + play.getWidth() / 2.0) * scale,
             (play.getY() + play.getHeight() / 2.0) * scale,
-            new net.minecraft.client.input.MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+            new net.minecraft.client.input.MouseButtonInfo(InputConstants.MOUSE_BUTTON_LEFT, 0));
         check(screen.mouseClicked(click, false), "New mouse event reaches the scaled play control");
         check(!mod.player.paused(), "Scaled mouse click resumes playback");
         screen.mouseReleased(click);
         screen.setFocused(play);
         play.setFocused(true);
-        check(screen.keyPressed(new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_SPACE, 0, 0)),
+        check(screen.keyPressed(new net.minecraft.client.input.KeyEvent(InputConstants.KEY_SPACE, 0, 0)),
             "New key event reaches the focused play control");
         check(mod.player.paused(), "Space activates the focused play control");
     }
@@ -120,7 +157,7 @@ public final class PortSmokeTest implements ClientModInitializer {
         if (!started || finished) return;
         tick++;
         try {
-            if (tick > 3600) throw new AssertionError("Smoke test timeout in stage " + stage);
+            if (tick > (Boolean.getBoolean("kingmusic.smoke.folder") ? 7200 : 3600)) throw new AssertionError("Smoke test timeout in stage " + stage);
             if (pendingAdvance != null) {
                 Runnable advance = pendingAdvance;
                 pendingAdvance = null;
@@ -145,15 +182,31 @@ public final class PortSmokeTest implements ClientModInitializer {
                             "Fresh production trust verified online without cached signature");
                     }
                 }
-                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 26.2 title layout");
-                check(MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
-                    new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
+                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 26.3 title layout");
+                check(MusicMod.handleKey(client.getWindow().handle(), InputConstants.PRESS,
+                    new net.minecraft.client.input.KeyEvent(InputConstants.KEY_F8, 0, 0)), "F8 shortcut handled");
                 check(client.gui.screen() instanceof MusicUi.PlayerScreen, "F8 opens the player");
                 var tracks = LocalMusic.scan(Path.of(mod.settings.localFolder));
                 check(tracks.size() >= 2, "Synthetic local music scanned");
                 mod.player.play(tracks, 0);
+                if (Boolean.getBoolean("kingmusic.smoke.folder")) {
+                    MusicFolderPicker.choose(client, mod.settings.localFolder, (selected, failed) -> {
+                        try {
+                            check(!failed && selected != null, "Native SDL folder dialog returns a selection");
+                            check(Path.of(selected).toAbsolutePath().normalize().equals(Path.of(mod.settings.localFolder).toAbsolutePath().normalize()),
+                                "Native SDL folder dialog preserves the selected directory path");
+                            folderReady = true;
+                        } catch (Throwable error) {
+                            finished = true;
+                            MusicMod.LOG.error("SMOKE native folder selection failed", error);
+                            try { Files.writeString(REPORT, "FAIL native folder picker: " + error); } catch (Exception ignored) {}
+                            client.stop();
+                        }
+                    });
+                }
                 next();
             } else if (stage == 1 && ready()) {
+                if (!folderReady) return;
                 if (!mod.player.started() || mod.player.elapsedMs() < 200) return;
                 check(mod.player.durationMs() == 60000 && mod.player.error().isEmpty(), "WAV audio starts with correct duration");
                 mod.player.setPaused(true);
@@ -166,6 +219,7 @@ public final class PortSmokeTest implements ClientModInitializer {
             } else if (stage == 3 && ready()) {
                 if (!mod.player.started()) return;
                 check(mod.player.paused() && Math.abs(mod.player.elapsedMs() - 20000) < 500, "Seek preserves paused state and reaches target");
+                exerciseLegacyShortcuts(client);
                 exercisePlayerInput(client);
                 mod.player.setPaused(false);
                 ((MusicUi.PlayerScreen) client.gui.screen()).showLyrics();
@@ -187,7 +241,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                     "New character event reaches the lyrics editor");
                 check(edit.getValue().contains("Ж"), "Character event inserts Unicode text");
                 edit.setValue("line\n".repeat(LyricsData.MAX_LINES + 2));
-                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 26.2");
+                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 26.3");
                 edit.setValue(((LyricsAddon) mod.lyrics).data().plain());
                 shot(client, "editor", () -> { mod.settings.uiScale = 50; mod.lyrics.edit(title); next(); });
             } else if (stage == 6 && ready()) {
@@ -245,11 +299,11 @@ public final class PortSmokeTest implements ClientModInitializer {
                 check(clear, "All mini-player controls stay clear of vanilla pause-menu buttons");
                 shot(client, "pause-mini-player", () -> {
                 client.gui.setScreen(null);
-                check(MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
-                    new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 opens the player from the world");
+                check(MusicMod.handleKey(client.getWindow().handle(), InputConstants.PRESS,
+                    new net.minecraft.client.input.KeyEvent(InputConstants.KEY_F8, 0, 0)), "F8 opens the player from the world");
                 check(client.gui.screen() instanceof MusicUi.PlayerScreen, "In-world player screen opens");
-                MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
-                    new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0));
+                MusicMod.handleKey(client.getWindow().handle(), InputConstants.PRESS,
+                    new net.minecraft.client.input.KeyEvent(InputConstants.KEY_F8, 0, 0));
                 check(client.gui.screen() == null, "F8 returns to the world");
                 MusicApi.Track mp3;
                 try { mp3 = LocalMusic.scan(Path.of(mod.settings.localFolder)).stream()
@@ -279,7 +333,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void finish(Minecraft client) throws java.io.IOException {
-        Files.writeString(REPORT, "PASS: Java 25 / Fabric 26.2 / Core + Lyrics"
+        Files.writeString(REPORT, "PASS: Java 25 / Fabric 26.3 / Core + Lyrics"
             + (Boolean.getBoolean("kingmusic.smoke.world") ? " / world HUDs and pause menu" : "") + "\n");
         MusicMod.LOG.info("SMOKE COMPLETE");
         finished = true;

@@ -8,7 +8,7 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -472,8 +472,8 @@ final class LyricsEditor extends MusicScreen {
 
         @Override
         public boolean keyPressed(KeyEvent event) {
-            if (!active || !isFocused() || event.key() != GLFW.GLFW_KEY_LEFT && event.key() != GLFW.GLFW_KEY_RIGHT) return false;
-            int step = (event.hasShiftDown() ? 100 : 10) * (event.key() == GLFW.GLFW_KEY_LEFT ? -1 : 1);
+            if (!active || !isFocused() || event.key() != InputConstants.KEY_LEFT && event.key() != InputConstants.KEY_RIGHT) return false;
+            int step = (event.hasShiftDown() ? 100 : 10) * (event.key() == InputConstants.KEY_LEFT ? -1 : 1);
             setCue(selected, Math.clamp(timestamp() + step, 0, mod.player.durationMs()));
             rebuildWidgets();
             if (marker != null) LyricsEditor.this.setFocused(marker);

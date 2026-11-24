@@ -29,7 +29,6 @@ import net.minecraft.client.gui.screens.TitleScreen;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.resources.Identifier;
-import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -80,7 +79,7 @@ public final class MusicMod implements ClientModInitializer {
             ClientTickEvents.END_CLIENT_TICK.register(extension::tick);
         }
         KeyMapping.Category category = KeyMapping.Category.register(id("controls"));
-        openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.yamusic.open", GLFW.GLFW_KEY_F8, category));
+        openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.yamusic.open", InputConstants.KEY_F8, category));
         lyrics = FabricLoader.getInstance().getEntrypoints("king_music_lyrics", MusicLyricsExtension.class)
             .stream().findFirst().orElse(null);
         if (lyrics != null) {
@@ -126,7 +125,7 @@ public final class MusicMod implements ClientModInitializer {
     }
 
     private static Minecraft inputClient(long window, int action) {
-        if (instance == null || action == GLFW.GLFW_RELEASE) return null;
+        if (instance == null || action == InputConstants.RELEASE) return null;
         Minecraft client = Minecraft.getInstance();
         if (client == null || client.gui == null || client.gui.overlay() != null
                 || client.getWindow() == null || window != client.getWindow().handle()) return null;
@@ -137,7 +136,7 @@ public final class MusicMod implements ClientModInitializer {
         Screen current = client.gui.screen();
         if (current instanceof MusicUi.PlayerScreen screen) {
             if (screen.recording()) {
-                if (eventAction == GLFW.GLFW_PRESS) screen.record(chord);
+                if (eventAction == InputConstants.PRESS) screen.record(chord);
                 return true;
             }
             if (screen.typing()) return false;
@@ -148,8 +147,8 @@ public final class MusicMod implements ClientModInitializer {
             return false;
         }
         if (!chord.assigned()) return false;
-        if (chord.mouse() && current != null && chord.key() <= GLFW.GLFW_MOUSE_BUTTON_RIGHT) return false;
-        if (eventAction == GLFW.GLFW_PRESS && chord.modifiers() == 0 && opens) {
+        if (chord.mouse() && current != null && (chord.key() == InputConstants.MOUSE_BUTTON_LEFT || chord.key() == InputConstants.MOUSE_BUTTON_RIGHT)) return false;
+        if (eventAction == InputConstants.PRESS && chord.modifiers() == 0 && opens) {
             if (current instanceof MusicUi.PlayerScreen screen) screen.closePlayer();
             else open(current);
             return true;
@@ -157,7 +156,7 @@ public final class MusicMod implements ClientModInitializer {
         for (MusicShortcuts.Action action : MusicShortcuts.Action.values()) {
             if (action.editorOnly() || action.requiresLyrics() && lyrics == null) continue;
             if (!chord.equals(settings.shortcuts.get(action))) continue;
-            if (eventAction == GLFW.GLFW_PRESS) {
+            if (eventAction == InputConstants.PRESS) {
                 if (follows() && (action == MusicShortcuts.Action.PLAY || action == MusicShortcuts.Action.PREVIOUS
                     || action == MusicShortcuts.Action.NEXT)) return true;
                 switch (action) {
@@ -182,7 +181,7 @@ public final class MusicMod implements ClientModInitializer {
 
     boolean matchesOpenKey(MusicShortcuts.Binding chord) {
         InputConstants.Key key = KeyMappingHelper.getBoundKeyOf(openKey);
-        InputConstants.Type type = chord.mouse() ? InputConstants.Type.MOUSE : InputConstants.Type.KEYSYM;
+        InputConstants.Type type = chord.mouse() ? InputConstants.Type.MOUSE : InputConstants.Type.KEYBOARD;
         return chord.modifiers() == 0 && key.getType() == type
             && chord.key() == key.getValue();
     }

@@ -20,8 +20,7 @@ import net.minecraft.resources.Identifier;
 import net.minecraft.sounds.SoundEvents;
 import studio.king220l.yamusic.CompatColor;
 import net.minecraft.util.Util;
-import org.lwjgl.glfw.GLFW;
-import org.lwjgl.util.tinyfd.TinyFileDialogs;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.net.URI;
 import java.nio.file.Path;
@@ -121,7 +120,7 @@ final class MusicUi {
             if (held) {
                 var client = Minecraft.getInstance();
                 held = client.isWindowActive()
-                    && GLFW.glfwGetMouseButton(client.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+                    && client.mouseHandler.isLeftPressed();
             }
             hover = approach(hover, active && (isHovered() || keyboardFocus()) ? 1 : 0, ms / 125);
             press = approach(press, active && (held && isHovered() || now < pulseUntil) ? 1 : 0, ms / 78);
@@ -260,8 +259,8 @@ final class MusicUi {
         public boolean keyPressed(KeyEvent event) {
             if (!isFocused() || !active) return false;
             int key = event.key();
-            if (key != GLFW.GLFW_KEY_LEFT && key != GLFW.GLFW_KEY_RIGHT) return false;
-            player.seek(player.track(), player.elapsedMs() + (key == GLFW.GLFW_KEY_LEFT ? -5_000 : 5_000));
+            if (key != InputConstants.KEY_LEFT && key != InputConstants.KEY_RIGHT) return false;
+            player.seek(player.track(), player.elapsedMs() + (key == InputConstants.KEY_LEFT ? -5_000 : 5_000));
             sync();
             return true;
         }
@@ -513,8 +512,8 @@ final class MusicUi {
         @Override
         public boolean keyPressed(KeyEvent event) {
             if (fineSteps && active && isFocused()
-                    && (event.key() == GLFW.GLFW_KEY_LEFT || event.key() == GLFW.GLFW_KEY_RIGHT)) {
-                int step = event.key() == GLFW.GLFW_KEY_LEFT ? -1 : 1;
+                    && (event.key() == InputConstants.KEY_LEFT || event.key() == InputConstants.KEY_RIGHT)) {
+                int step = event.key() == InputConstants.KEY_LEFT ? -1 : 1;
                 value = (Math.clamp(amount() + step, min, max) - min) / (double) (max - min);
                 updateMessage();
                 applyValue();
@@ -927,23 +926,11 @@ final class MusicUi {
             if (choosingFolder) return;
             choosingFolder = true;
             String initial = mod.settings.localFolder.isBlank() ? System.getProperty("user.home") : mod.settings.localFolder;
-            Thread.startVirtualThread(() -> {
-                String path = null;
-                boolean failed = false;
-                try {
-                    path = TinyFileDialogs.tinyfd_selectFolderDialog(MusicMod.NAME, initial);
-                } catch (RuntimeException | LinkageError error) {
-                    failed = true;
-                    MusicMod.LOG.warn("Could not open the folder picker", error);
-                }
-                String selected = path;
-                boolean unavailable = failed;
-                minecraft.execute(() -> {
-                    choosingFolder = false;
-                    if (tab != Tab.LOCAL) return;
-                    if (unavailable) notice = "Диалог недоступен. Перетащи папку в окно игры.";
-                    else if (selected != null) useFolder(Path.of(selected));
-                });
+            MusicFolderPicker.choose(minecraft, initial, (selected, unavailable) -> {
+                choosingFolder = false;
+                if (tab != Tab.LOCAL) return;
+                if (unavailable) notice = "Диалог недоступен. Перетащи папку в окно игры.";
+                else if (selected != null) useFolder(Path.of(selected));
             });
         }
 
@@ -1337,7 +1324,7 @@ final class MusicUi {
                     mod.authStatus = "Код скопирован.";
                 });
             browser = button(new Rect(content.x + loginWidth + pair + 12, buttonY, pair, 22), "Открыть Яндекс", Icon.RIGHT,
-                Style.SELECTED, true, false, () -> Util.getPlatform().openUri(URI.create(MusicMod.AUTH_URL)));
+                Style.SELECTED, true, false, () -> org.lwjgl.sdl.SDLMisc.SDL_OpenURL(MusicMod.AUTH_URL));
         }
 
         private void updateAccount() {
@@ -1672,13 +1659,13 @@ final class MusicUi {
         void record(MusicShortcuts.Binding binding) {
             if (!binding.assigned() || !binding.mouse() && MusicShortcuts.modifierKey(binding.key())) return;
             if (!binding.mouse() && binding.modifiers() == 0) {
-                if (binding.key() == GLFW.GLFW_KEY_ESCAPE) {
+                if (binding.key() == InputConstants.KEY_ESCAPE) {
                     recording = null;
                     keyNotice = "Запись отменена.";
                     rebuildWidgets();
                     return;
                 }
-                if (binding.key() == GLFW.GLFW_KEY_DELETE || binding.key() == GLFW.GLFW_KEY_BACKSPACE) {
+                if (binding.key() == InputConstants.KEY_DELETE || binding.key() == InputConstants.KEY_BACKSPACE) {
                     saveBinding(recording, MusicShortcuts.unbound());
                     return;
                 }
@@ -1688,7 +1675,7 @@ final class MusicUi {
                 return;
             }
             if (recording.editorOnly() && binding.mouse() && binding.modifiers() == 0
-                    && binding.key() <= GLFW.GLFW_MOUSE_BUTTON_RIGHT) {
+                    && (binding.key() == InputConstants.MOUSE_BUTTON_LEFT || binding.key() == InputConstants.MOUSE_BUTTON_RIGHT)) {
                 keyNotice = "Для левой и правой кнопок добавь Ctrl, Shift или Alt.";
                 return;
             }
@@ -1712,7 +1699,7 @@ final class MusicUi {
 
         @Override
         public boolean keyPressed(KeyEvent event) {
-            if (typing() && (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER)) {
+            if (typing() && (event.key() == InputConstants.KEY_RETURN || event.key() == InputConstants.KEY_NUMPADENTER)) {
                 setFocused(null);
                 if (tab == Tab.SEARCH) submit(0, query);
                 return true;

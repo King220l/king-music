@@ -5,7 +5,7 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
-import org.lwjgl.glfw.GLFW;
+import com.mojang.blaze3d.platform.InputConstants;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -132,7 +132,7 @@ abstract class HudPlacementScreen extends MusicScreen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean twice) {
         if (super.mouseClicked(event, twice)) return true;
-        if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
+        if (event.button() != InputConstants.MOUSE_BUTTON_LEFT) return false;
         if (toolbar.contains(event.x(), event.y())) {
             if (event.y() < toolbar.y() + FIRST_SLIDER) startDrag(Drag.TOOLBAR, toolbar, event);
             return true;
@@ -161,7 +161,7 @@ abstract class HudPlacementScreen extends MusicScreen {
 
     @Override
     public boolean mouseDragged(MouseButtonEvent event, double x, double y) {
-        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseDragged(event, x, y);
+        if (drag == Drag.NONE || event.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseDragged(event, x, y);
         if (drag == Drag.TOOLBAR) {
             moveToolbar(event.x() - dx, event.y() - dy);
             return true;
@@ -174,7 +174,7 @@ abstract class HudPlacementScreen extends MusicScreen {
 
     @Override
     public boolean mouseReleased(MouseButtonEvent event) {
-        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseReleased(event);
+        if (drag == Drag.NONE || event.button() != InputConstants.MOUSE_BUTTON_LEFT) return super.mouseReleased(event);
         if (drag == Drag.HUD) save();
         drag = Drag.NONE;
         return true;
