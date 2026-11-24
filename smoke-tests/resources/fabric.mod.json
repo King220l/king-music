@@ -12,7 +12,7 @@
   "depends": {
     "yamusic": "*",
     "king_music_lyrics": "*",
-    "minecraft": "=26.1"
+    "minecraft": "=26.1.1"
   },
   "mixins": [
     "king_music_smoke.mixins.json"
