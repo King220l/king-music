@@ -562,7 +562,7 @@ final class MusicUi {
         public boolean isPauseScreen() { return parent != null && parent.isPauseScreen(); }
 
         @Override
-        public void onClose() { minecraft.setScreen(parent); }
+        public void onClose() { minecraft.gui.setScreen(parent); }
 
         @Override
         public void extractBackground(GuiGraphicsExtractor g, int mx, int my, float dt) {
@@ -1209,7 +1209,7 @@ final class MusicUi {
             headingReserve = 29;
             List<Preference> options = new ArrayList<>();
             options.add(new Preference("Открыть плеер", row -> valueButton(row, mod.openKeyLabel(), Icon.RIGHT, false,
-                () -> minecraft.setScreen(new KeyBindsScreen(this, minecraft.options)))));
+                () -> minecraft.gui.setScreen(new KeyBindsScreen(this, minecraft.options)))));
             for (MusicShortcuts.Action action : MusicShortcuts.Action.values()) {
                 if (action.requiresLyrics() && mod.lyrics == null) continue;
                 if (action == MusicShortcuts.Action.EDITOR_BACK) {
@@ -1283,7 +1283,7 @@ final class MusicUi {
         }
 
         private void positionHud() {
-            minecraft.setScreen(new PositionScreen(mod, this, hudPreview));
+            minecraft.gui.setScreen(new PositionScreen(mod, this, hudPreview));
         }
 
         private void accountPanel() {

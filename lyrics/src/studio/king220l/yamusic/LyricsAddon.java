@@ -44,7 +44,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath("king_music_lyrics", "lyrics"),
             (graphics, time) -> {
                 var game = Minecraft.getInstance();
-                if (!settings.hud || game.level == null || game.screen != null || !mod.player.started()) return;
+                if (!settings.hud || game.level == null || game.gui.screen() != null || !mod.player.started()) return;
                 LyricsData lyrics = data();
                 int current = lyrics.cueAt(displayPosition());
                 if (current < 0) return;
@@ -55,7 +55,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
 
     @Override
     public void tick(Minecraft game) {
-        boolean visible = game.screen instanceof MusicUi.PlayerScreen screen && screen.showingLyrics();
+        boolean visible = game.gui.screen() instanceof MusicUi.PlayerScreen screen && screen.showingLyrics();
         if (!visible && !(settings.hud && game.level != null)) {
             if (worker != null) stop();
             if (wasVisible && observed != null && local(observed)) loaded = false;
@@ -125,7 +125,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
 
     @Override
     public void edit(Screen parent) {
-        if (canEdit()) Minecraft.getInstance().setScreen(new LyricsEditor(mod, parent, this, observed, data));
+        if (canEdit()) Minecraft.getInstance().gui.setScreen(new LyricsEditor(mod, parent, this, observed, data));
     }
 
     @Override
@@ -180,7 +180,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
         }
         if (screen == null ? game.level == null : !(screen instanceof PauseScreen || screen instanceof TitleScreen)) return false;
         mod.open(screen);
-        if (game.screen instanceof MusicUi.PlayerScreen player) player.showLyrics();
+        if (game.gui.screen() instanceof MusicUi.PlayerScreen player) player.showLyrics();
         return true;
     }
 

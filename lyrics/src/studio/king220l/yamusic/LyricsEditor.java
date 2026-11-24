@@ -304,11 +304,11 @@ final class LyricsEditor extends MusicScreen {
         }, path -> {
             saving = false;
             addon.saved(track, result);
-            if (minecraft.screen == this) super.onClose();
+            if (minecraft.gui.screen() == this) super.onClose();
         }, error -> {
             saving = false;
             notice = error;
-            if (minecraft.screen == this) rebuildWidgets();
+            if (minecraft.gui.screen() == this) rebuildWidgets();
         });
     }
 

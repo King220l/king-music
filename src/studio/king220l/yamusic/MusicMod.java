@@ -103,7 +103,7 @@ public final class MusicMod implements ClientModInitializer {
         HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, id("track"),
             (graphics, delta) -> {
                 Minecraft minecraft = Minecraft.getInstance();
-                if (minecraft.level == null || minecraft.screen != null || !player.started()
+                if (minecraft.level == null || minecraft.gui.screen() != null || !player.started()
                         || settings.hud == MusicSettings.HudMode.OFF) return;
                 long age = System.currentTimeMillis() - player.startedAt();
                 if (settings.hud == MusicSettings.HudMode.CHANGE && age >= settings.seconds * 1_000L) return;
@@ -128,13 +128,13 @@ public final class MusicMod implements ClientModInitializer {
     private static Minecraft inputClient(long window, int action) {
         if (instance == null || action == GLFW.GLFW_RELEASE) return null;
         Minecraft client = Minecraft.getInstance();
-        if (client == null || client.getOverlay() != null
+        if (client == null || client.gui == null || client.gui.overlay() != null
                 || client.getWindow() == null || window != client.getWindow().handle()) return null;
         return client;
     }
 
     private boolean handleShortcut(Minecraft client, int eventAction, MusicShortcuts.Binding chord, boolean opens) {
-        Screen current = client.screen;
+        Screen current = client.gui.screen();
         if (current instanceof MusicUi.PlayerScreen screen) {
             if (screen.recording()) {
                 if (eventAction == GLFW.GLFW_PRESS) screen.record(chord);
@@ -246,7 +246,7 @@ public final class MusicMod implements ClientModInitializer {
     void open(Screen parent) {
         if (playerScreen == null) playerScreen = new MusicUi.PlayerScreen(this, parent);
         playerScreen.parent = parent;
-        Minecraft.getInstance().setScreen(playerScreen);
+        Minecraft.getInstance().gui.setScreen(playerScreen);
     }
 
     boolean authorizing() {

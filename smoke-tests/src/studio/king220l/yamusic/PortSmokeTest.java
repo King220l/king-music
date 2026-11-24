@@ -50,13 +50,13 @@ public final class PortSmokeTest implements ClientModInitializer {
     private boolean ready() { return tick - entered >= 25; }
     private void shot(Minecraft client, String name, Runnable after) {
         waitingFrame = true;
-        pendingFrame = () -> Screenshot.takeScreenshot(client.getMainRenderTarget(), image -> {
+        pendingFrame = () -> Screenshot.takeScreenshot(client.gameRenderer.mainRenderTarget(), image -> {
             try (image) {
                 if (name.equals("lyrics")) checkTextPixels(client, LyricsPanel.class, "interfaceScale", 30, image);
                 if (name.startsWith("editor")) checkTextPixels(client, MultiLineEditBox.class, "scale", 2, image);
                 Path directory = client.gameDirectory.toPath().resolve("screenshots");
                 Files.createDirectories(directory);
-                image.writeToFile(directory.resolve("king-music-26.1.2-" + name + ".png"));
+                image.writeToFile(directory.resolve("king-music-26.2-" + name + ".png"));
                 pendingAdvance = after;
             } catch (Throwable failure) {
                 finished = true;
@@ -75,11 +75,11 @@ public final class PortSmokeTest implements ClientModInitializer {
 
     private void checkTextPixels(Minecraft client, Class<?> widgetType, String scaleField, int topPadding, com.mojang.blaze3d.platform.NativeImage image) {
         try {
-            var widget = (net.minecraft.client.gui.components.AbstractWidget) client.screen.children().stream()
+            var widget = (net.minecraft.client.gui.components.AbstractWidget) client.gui.screen().children().stream()
                 .filter(widgetType::isInstance).findFirst().orElseThrow();
-            var field = client.screen.getClass().getDeclaredField(scaleField);
+            var field = client.gui.screen().getClass().getDeclaredField(scaleField);
             field.setAccessible(true);
-            double scale = ((Number) field.get(client.screen)).doubleValue()
+            double scale = ((Number) field.get(client.gui.screen())).doubleValue()
                 * image.getWidth() / client.getWindow().getGuiScaledWidth();
             int left = (int) ((widget.getX() + 8) * scale), top = (int) ((widget.getY() + topPadding) * scale);
             int right = (int) ((widget.getRight() - 8) * scale), bottom = (int) ((widget.getBottom() - 8) * scale);
@@ -95,7 +95,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void exercisePlayerInput(Minecraft client) throws ReflectiveOperationException {
-        var screen = (MusicUi.PlayerScreen) client.screen;
+        var screen = (MusicUi.PlayerScreen) client.gui.screen();
         var playField = screen.getClass().getDeclaredField("play");
         var scaleField = screen.getClass().getDeclaredField("interfaceScale");
         playField.setAccessible(true);
@@ -130,10 +130,10 @@ public final class PortSmokeTest implements ClientModInitializer {
             }
             if (waitingFrame) return;
             if (stage == 0) {
-                if (!(client.screen instanceof TitleScreen) || client.getOverlay() != null || tick < 40) return;
+                if (!(client.gui.screen() instanceof TitleScreen) || client.gui.overlay() != null || tick < 40) return;
                 mod = (MusicMod) FabricLoader.getInstance().getEntrypoints("client", ClientModInitializer.class).stream()
                     .filter(MusicMod.class::isInstance).findFirst().orElseThrow();
-                title = client.screen;
+                title = client.gui.screen();
                 mod.settings.uiScale = 85;
                 check(mod.lyrics instanceof LyricsAddon, "Core and Lyrics initialized");
                 check(mod.visualizer == null, "Visualizer is absent from the test client");
@@ -145,10 +145,10 @@ public final class PortSmokeTest implements ClientModInitializer {
                             "Fresh production trust verified online without cached signature");
                     }
                 }
-                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 26.1.2 title layout");
+                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 26.2 title layout");
                 check(MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
                     new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
-                check(client.screen instanceof MusicUi.PlayerScreen, "F8 opens the player");
+                check(client.gui.screen() instanceof MusicUi.PlayerScreen, "F8 opens the player");
                 var tracks = LocalMusic.scan(Path.of(mod.settings.localFolder));
                 check(tracks.size() >= 2, "Synthetic local music scanned");
                 mod.player.play(tracks, 0);
@@ -168,31 +168,31 @@ public final class PortSmokeTest implements ClientModInitializer {
                 check(mod.player.paused() && Math.abs(mod.player.elapsedMs() - 20000) < 500, "Seek preserves paused state and reaches target");
                 exercisePlayerInput(client);
                 mod.player.setPaused(false);
-                ((MusicUi.PlayerScreen) client.screen).showLyrics();
+                ((MusicUi.PlayerScreen) client.gui.screen()).showLyrics();
                 next();
             } else if (stage == 4 && ready()) {
                 var lyrics = (LyricsAddon) mod.lyrics;
                 if (!lyrics.data().synced()) return;
                 if (Boolean.getBoolean("kingmusic.smoke.inspect")) return;
                 check(lyrics.data().lines.size() == 5 && lyrics.canEdit(), "Local LRC loaded and editable");
-                shot(client, "lyrics", () -> { mod.lyrics.edit(client.screen); next(); });
+                shot(client, "lyrics", () -> { mod.lyrics.edit(client.gui.screen()); next(); });
             } else if (stage == 5 && ready()) {
-                check(client.screen instanceof LyricsEditor, "Lyrics editor opens and renders");
-                var edit = (MultiLineEditBox) client.screen.children().stream().filter(MultiLineEditBox.class::isInstance).findFirst().orElseThrow();
+                check(client.gui.screen() instanceof LyricsEditor, "Lyrics editor opens and renders");
+                var edit = (MultiLineEditBox) client.gui.screen().children().stream().filter(MultiLineEditBox.class::isInstance).findFirst().orElseThrow();
                 edit.setValue("Integration editor test\nРусский текст\nThird line");
                 check(edit.getValue().contains("Русский"), "Multi-line editor accepts Unicode text");
-                client.screen.setFocused(edit);
+                client.gui.screen().setFocused(edit);
                 edit.setFocused(true);
-                check(client.screen.charTyped(new net.minecraft.client.input.CharacterEvent('Ж')),
+                check(client.gui.screen().charTyped(new net.minecraft.client.input.CharacterEvent('Ж')),
                     "New character event reaches the lyrics editor");
                 check(edit.getValue().contains("Ж"), "Character event inserts Unicode text");
                 edit.setValue("line\n".repeat(LyricsData.MAX_LINES + 2));
-                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 26.1.2");
+                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 26.2");
                 edit.setValue(((LyricsAddon) mod.lyrics).data().plain());
                 shot(client, "editor", () -> { mod.settings.uiScale = 50; mod.lyrics.edit(title); next(); });
             } else if (stage == 6 && ready()) {
-                check(client.screen instanceof LyricsEditor, "Lyrics editor renders at 50 percent scale");
-                shot(client, "editor-50", () -> { client.setScreen(title); stage = 12; entered = tick; });
+                check(client.gui.screen() instanceof LyricsEditor, "Lyrics editor renders at 50 percent scale");
+                shot(client, "editor-50", () -> { client.gui.setScreen(title); stage = 12; entered = tick; });
             } else if (stage == 12 && ready()) {
                 mod.player.next();
                 next();
@@ -205,7 +205,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                 if (!mod.player.started()) return;
                 check(mod.player.error().isEmpty(), "Previous track resumes without decoder errors");
                 mod.player.stop();
-                client.setScreen(title);
+                client.gui.setScreen(title);
                 next();
             } else if (stage == 15 && ready()) {
                 shot(client, "title-no-button", () -> {
@@ -214,12 +214,13 @@ public final class PortSmokeTest implements ClientModInitializer {
                     var settings = new LevelSettings("KING Music smoke", GameType.CREATIVE,
                         new LevelSettings.DifficultySettings(Difficulty.PEACEFUL, false, false), false, data);
                     client.createWorldOpenFlows().createFreshLevel("KingMusicSmoke-" + System.currentTimeMillis(),
-                        settings, new WorldOptions(12345L, false, false), WorldPresets::createFlatWorldDimensions, title);
+                        settings, new WorldOptions(12345L, false, false), provider -> provider.lookupOrThrow(net.minecraft.core.registries.Registries.WORLD_PRESET)
+                            .getOrThrow(WorldPresets.FLAT).value().createWorldDimensions(), title);
                     next();
                 } else { try { finish(client); } catch (java.io.IOException e) { throw new IllegalStateException(e); } }
                 });
             } else if (stage == 16 && ready()) {
-                if (client.level == null || client.player == null || client.screen != null || client.getOverlay() != null) return;
+                if (client.level == null || client.player == null || client.gui.screen() != null || client.gui.overlay() != null) return;
                 check(true, "Isolated flat world loaded");
                 mod.settings.hud = MusicSettings.HudMode.ALWAYS;
                 ((LyricsAddon) mod.lyrics).appearance().hud = true;
@@ -227,10 +228,10 @@ public final class PortSmokeTest implements ClientModInitializer {
                 next();
             } else if (stage == 17 && ready()) {
                 if (!mod.player.started() || !((LyricsAddon) mod.lyrics).data().synced()) return;
-                check(client.screen == null && mod.player.error().isEmpty(), "Track HUD and Lyrics HUD render during world playback");
-                shot(client, "world-huds", () -> { client.setScreen(new PauseScreen(true)); next(); });
+                check(client.gui.screen() == null && mod.player.error().isEmpty(), "Track HUD and Lyrics HUD render during world playback");
+                shot(client, "world-huds", () -> { client.gui.setScreen(new PauseScreen(true)); next(); });
             } else if (stage == 18 && ready()) {
-                var widgets = net.fabricmc.fabric.api.client.screen.v1.Screens.getWidgets(client.screen);
+                var widgets = net.fabricmc.fabric.api.client.screen.v1.Screens.getWidgets(client.gui.screen());
                 check(widgets.stream().filter(MusicUi.MiniTrack.class::isInstance).count() == 1, "Pause menu contains one mini-player");
                 boolean clear = true;
                 for (var music : widgets) {
@@ -243,13 +244,13 @@ public final class PortSmokeTest implements ClientModInitializer {
                 }
                 check(clear, "All mini-player controls stay clear of vanilla pause-menu buttons");
                 shot(client, "pause-mini-player", () -> {
-                client.setScreen(null);
+                client.gui.setScreen(null);
                 check(MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
                     new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 opens the player from the world");
-                check(client.screen instanceof MusicUi.PlayerScreen, "In-world player screen opens");
+                check(client.gui.screen() instanceof MusicUi.PlayerScreen, "In-world player screen opens");
                 MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
                     new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0));
-                check(client.screen == null, "F8 returns to the world");
+                check(client.gui.screen() == null, "F8 returns to the world");
                 MusicApi.Track mp3;
                 try { mp3 = LocalMusic.scan(Path.of(mod.settings.localFolder)).stream()
                     .filter(track -> track.file().getFileName().toString().endsWith(".mp3")).findFirst().orElseThrow(); }
@@ -278,7 +279,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void finish(Minecraft client) throws java.io.IOException {
-        Files.writeString(REPORT, "PASS: Java 25 / Fabric 26.1.2 / Core + Lyrics"
+        Files.writeString(REPORT, "PASS: Java 25 / Fabric 26.2 / Core + Lyrics"
             + (Boolean.getBoolean("kingmusic.smoke.world") ? " / world HUDs and pause menu" : "") + "\n");
         MusicMod.LOG.info("SMOKE COMPLETE");
         finished = true;

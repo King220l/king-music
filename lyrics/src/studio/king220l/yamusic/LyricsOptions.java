@@ -35,7 +35,7 @@ final class LyricsOptions {
         return List.of(
             hudToggle(screen, settings, "Текст поверх игры", settings.hud, () -> settings.hud = !settings.hud),
             new Preference("Расположение HUD", row -> screen.valueButton(row, "Переместить", Icon.POSITION, false,
-                () -> Minecraft.getInstance().setScreen(new Placement(screen.mod, screen, addon)))),
+                () -> Minecraft.getInstance().gui.setScreen(new Placement(screen.mod, screen, addon)))),
             new Preference("Оформление HUD", row -> screen.valueButton(row, settings.hudStyle.label, null, false,
                 () -> change(screen, settings, () -> settings.hudStyle = settings.hudStyle.next()))),
             hudToggle(screen, settings, "Уже спетая строка", settings.showPrevious, () -> settings.showPrevious = !settings.showPrevious),
