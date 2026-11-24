@@ -28,8 +28,10 @@ Player/Lyrics and 50% editor screenshots were visually inspected.
 
 Both candidate JARs pass ZIP integrity, exact MC metadata, Java 21 class-version
 and the new remapped input-mixin descriptor checks. Their hashes were signed
-using the existing local key without exporting it. Production and fresh-online
-verification are pending; no release has been published yet.
+using the existing local key without exporting it. The ordinary Fabric client
+passed all 37 production assertions, including fresh online authenticity without
+cached signatures. Its Lyrics screenshot was visually inspected. Release uploads
+are downloaded and compared byte-for-byte before publication.
 
 ## Reproduce
 
