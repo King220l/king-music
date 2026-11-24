@@ -220,7 +220,7 @@ abstract class HudPlacementScreen extends MusicScreen {
             g.fill(preview.x() + 5, preview.y() - 2, preview.right() - 5, preview.y() - 1, ACCENT);
             g.fill(preview.x() + 5, preview.bottom() + 1, preview.right() - 5, preview.bottom() + 2, ACCENT);
         }
-        g.flush();
+        g.nextStratum();
         outline(g, toolbar.x(), toolbar.y(), toolbar.w(), toolbar.h(), 8, BORDER, BASE);
         Rect grip = titleGrip();
         if (drag == Drag.TOOLBAR || drag == Drag.NONE && grip.contains(mx, my)) {

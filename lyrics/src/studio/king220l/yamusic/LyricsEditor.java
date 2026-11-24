@@ -103,20 +103,11 @@ final class LyricsEditor extends MusicScreen {
     }
 
     private void textControls() {
-        var edit = addRenderableWidget(new MultiLineEditBox(font, body.x(), body.y(), body.w(), body.h(),
-            Component.literal("Вставь или напиши текст, по одной строке на абзац"), Component.literal("Строки песни")) {
-            @Override
-            public void renderWidget(GuiGraphics graphics, int mx, int my, float delta) {
-                if (!visible) return;
-                CompatPose.scissor(graphics, getX() + 1, getY() + 1, getRight() - 1, getBottom() - 1);
-                graphics.pose().pushPose();
-                graphics.pose().translate(0, -scrollAmount(), 0);
-                renderContents(graphics, mx, my, delta);
-                graphics.pose().popPose();
-                graphics.disableScissor();
-                renderDecorations(graphics);
-            }
-        });
+        var edit = addRenderableWidget(MultiLineEditBox.builder()
+            .setX(body.x()).setY(body.y())
+            .setPlaceholder(Component.literal("Вставь или напиши текст, по одной строке на абзац"))
+            .setShowBackground(false)
+            .build(font, body.w(), body.h(), Component.literal("Строки песни")));
         edit.setCharacterLimit(LyricsData.MAX_TEXT);
         edit.setValue(draft);
         edit.setValueListener(value -> {

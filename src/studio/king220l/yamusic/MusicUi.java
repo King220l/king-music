@@ -3,7 +3,7 @@ package studio.king220l.yamusic;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.RenderType;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.EditBox;
@@ -1839,7 +1839,7 @@ final class MusicUi {
             if (creditShownAt < 0) return;
             long age = Util.getMillis() - creditShownAt;
             if (age >= 3100) return;
-            g.flush();
+            g.nextStratum();
             int x = frame.right() - 147;
             int y = frame.y + 46 + Math.round(6 * Math.max(0, 1 - age / 170f));
             int width = 137, height = 35;
@@ -1889,7 +1889,7 @@ final class MusicUi {
             int sourceH = Math.min(724, Math.max(1, h * 2172 / Math.max(1, w)));
             int sourceX = (2172 - sourceW) * 4 / 5;
             int sourceY = (724 - sourceH) / 2;
-            g.blit(RenderType::guiTextured, BANNER, x, y, (float) sourceX, (float) sourceY, w, h, sourceW, sourceH, 2172, 724);
+            g.blit(RenderPipelines.GUI_TEXTURED, BANNER, x, y, (float) sourceX, (float) sourceY, w, h, sourceW, sourceH, 2172, 724);
             g.fillGradient(x, y, x + w, y + h, 0x38221b29, 0x83121019);
             maskCorners(g, x, y, w, h, 7, BASE);
             boolean local = !signedIn;
