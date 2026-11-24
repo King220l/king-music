@@ -51,3 +51,9 @@ Still unverified: live Yandex login/Wave requests, real multiplayer and third-pa
 menu/HUD mod interoperability. No player account or real music was copied into
 the test profiles. Together and historical Visualizer sources are unchanged.
 
+## Online authenticity — 2026-11-24
+
+A fresh production client with cached signature files removed passed all 31
+assertions. It explicitly confirmed VERIFIED online authenticity from the
+version-specific GitHub manifest. The release upload is verified byte-for-byte
+before publication. Only Core and Lyrics are release artifacts.
