@@ -19,7 +19,7 @@
     "fabricloader": ">=0.16.14",
     "fabric-api": "*",
     "yamusic": ">=0.5.11 <0.6.0",
-    "minecraft": "=1.21.7",
+    "minecraft": "=1.21.8",
     "java": ">=21"
   }
 }

@@ -4,6 +4,6 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
-rootProject.name = 'king-music-fabric-1.21.7'
+rootProject.name = 'king-music-fabric-1.21.8'
 include 'lyrics'
 if (gradle.startParameter.projectProperties.containsKey('smokeTest')) include 'smoke-tests'
