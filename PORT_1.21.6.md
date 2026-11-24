@@ -53,3 +53,14 @@ Results and screenshots stay in the isolated `run` and
 Still unverified: live Yandex login/Wave requests, real multiplayer and third-party
 menu/HUD mod interoperability. No player account or real music was copied into
 the test profiles. Together and historical Visualizer sources are unchanged.
+
+## Online authenticity verification — 2026-11-24
+
+After pushing the signed manifest, a fresh production launch with both cached
+signature files removed passed all 31 assertions, including an explicit VERIFIED
+online-authenticity assertion. The remote bytes, Ed25519 signature and both JAR
+hashes were checked independently. Run `python tools/run_production_smoke.py
+--world --online-trust` after publication of the branch manifest to reproduce.
+
+The user subsequently authorized separate GitHub Releases containing these
+verified JARs, manifest and signature. Existing releases remain unchanged.

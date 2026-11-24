@@ -49,10 +49,14 @@ smoke=list((r/'smoke-tests/build/libs').glob('*-Fabric-1.21.6.jar'));assert len(
 shutil.copy2(smoke[0],game/'mods'/smoke[0].name)
 (game/'config/yamusic').mkdir(parents=True,exist_ok=True)
 shutil.copy2(r/'run/config/yamusic/settings.json',game/'config/yamusic/settings.json')
-shutil.copy2(r/'official/1.21.6/manifest.txt',game/'config/yamusic/official-manifest.txt')
-shutil.copy2(r/'official/1.21.6/manifest.sig',game/'config/yamusic/official-manifest.sig')
+online_trust = '--online-trust' in __import__('sys').argv
+for name, source in [('official-manifest.txt', 'manifest.txt'), ('official-manifest.sig', 'manifest.sig')]:
+ target = game/'config/yamusic'/name
+ if online_trust: target.unlink(missing_ok=True)
+ else: shutil.copy2(r/'official/1.21.6'/source, target)
 shutil.copy2(r/'run/options.txt',game/'options.txt')
 args=['-Xmx2G','-cp',os.pathsep.join(map(str,libs)),profile['mainClass'],'--username','KingMusicTest','--version','1.21.6','--gameDir',str(game),'--assetsDir',str(cache/'fabric-loom/assets'),'--assetIndex',meta['id']+'-'+meta['assetIndex']['id'],'--uuid','00000000000000000000000000000001','--accessToken','0','--userType','legacy','--versionType','release','--width','1280','--height','720']
+if online_trust: args.insert(0,'-Dkingmusic.smoke.onlineTrust=true')
 if '--world' in __import__('sys').argv: args.insert(0,'-Dkingmusic.smoke.world=true')
 argfile=r/'build/production.args';argfile.write_text('\n'.join('"'+x.replace('\\','/')+'"' for x in args),'utf-8')
 (game/'smoke-result.txt').unlink(missing_ok=True)

@@ -119,6 +119,10 @@ public final class PortSmokeTest implements ClientModInitializer {
                 if (!FabricLoader.getInstance().isDevelopmentEnvironment()) {
                     BuildTrust.requireOfficial();
                     check(!BuildTrust.modified(), "Production JAR hashes verified by Ed25519 manifest");
+                    if (Boolean.getBoolean("kingmusic.smoke.onlineTrust")) {
+                        check(BuildTrust.message().equals("Подлинность: официальная сборка King220l"),
+                            "Fresh production trust verified online without cached signature");
+                    }
                 }
                 check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.6 title layout");
                 check(MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
