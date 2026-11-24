@@ -22,7 +22,7 @@ for name, frequency in [('KING Test - Stereo Tone', 440), ('KING Test - Second T
             output.setframerate(44100)
             output.writeframes(pcm.tobytes())
     path.with_suffix('.lrc').write_text(
-        '[00:00.00]KING Music 1.21.9 test\n[00:05.00]Lyrics synchronization\n'
+        '[00:00.00]KING Music 1.21.10 test\n[00:05.00]Lyrics synchronization\n'
         '[00:10.00]Перемотка и русский текст\n[00:20.00]Stereo PCM playback test\n'
         '[00:40.00]End of test track\n', encoding='utf-8')
 # MPEG-1 Layer III silent frames: exercise the actual MP3 decoder without an encoder dependency.

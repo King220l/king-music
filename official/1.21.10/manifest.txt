@@ -1,0 +1,3 @@
+# KING Music Fabric 1.21.10 — SHA-256 / Ed25519
+71e5f852463a50259abc5ccfb6b7481c594bf50789bccd02fe771b1bf8598061  King-Music-0.5.16-Fabric-1.21.10.jar
+e92495f29e959a59c58e6ca24bbc74868a896d8acbc3c9e3f3945ed8b8f12663  King-Music-Lyrics-0.1.5-Fabric-1.21.10.jar
