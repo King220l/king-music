@@ -4,6 +4,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FontDescription;
 import net.minecraft.resources.ResourceLocation;
 import studio.king220l.yamusic.CompatColor;
 
@@ -31,10 +32,10 @@ final class MusicTheme {
 
     enum Type {
         BODY("regular"), STRONG("bold"), TITLE("title"), HERO("hero");
-        final ResourceLocation font;
+        final FontDescription.Resource font;
 
         Type(String file) {
-            font = ResourceLocation.fromNamespaceAndPath("yamusic", file);
+            font = new FontDescription.Resource(ResourceLocation.fromNamespaceAndPath("yamusic", file));
         }
     }
 

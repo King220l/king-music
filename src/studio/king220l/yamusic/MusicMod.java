@@ -25,8 +25,8 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.PauseScreen;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.TitleScreen;
-import studio.king220l.yamusic.CompatInput.KeyEvent;
-import studio.king220l.yamusic.CompatInput.MouseButtonInfo;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import net.minecraft.resources.ResourceLocation;
 import org.lwjgl.glfw.GLFW;
 import org.slf4j.Logger;
@@ -78,7 +78,7 @@ public final class MusicMod implements ClientModInitializer {
             extension.initialize(this);
             ClientTickEvents.END_CLIENT_TICK.register(extension::tick);
         }
-        String category = "key.categories.yamusic";
+        KeyMapping.Category category = KeyMapping.Category.register(id("controls"));
         openKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.yamusic.open", GLFW.GLFW_KEY_F8, category));
         lyrics = FabricLoader.getInstance().getEntrypoints("king_music_lyrics", MusicLyricsExtension.class)
             .stream().findFirst().orElse(null);
@@ -114,7 +114,7 @@ public final class MusicMod implements ClientModInitializer {
     public static boolean handleKey(long window, int action, KeyEvent event) {
         Minecraft client = inputClient(window, action);
         if (client == null) return false;
-        return instance.handleShortcut(client, action, MusicShortcuts.Binding.of(event), instance.openKey.matches(event.key(), event.scancode()));
+        return instance.handleShortcut(client, action, MusicShortcuts.Binding.of(event), instance.openKey.matches(event));
     }
 
     public static boolean handleMouse(long window, int action, MouseButtonInfo event) {
@@ -128,7 +128,7 @@ public final class MusicMod implements ClientModInitializer {
         if (instance == null || action == GLFW.GLFW_RELEASE) return null;
         Minecraft client = Minecraft.getInstance();
         if (client == null || client.getOverlay() != null
-                || client.getWindow() == null || window != client.getWindow().getWindow()) return null;
+                || client.getWindow() == null || window != client.getWindow().handle()) return null;
         return client;
     }
 

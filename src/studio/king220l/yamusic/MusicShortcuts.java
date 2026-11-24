@@ -1,8 +1,8 @@
 package studio.king220l.yamusic;
 
 import com.mojang.blaze3d.platform.InputConstants;
-import studio.king220l.yamusic.CompatInput.KeyEvent;
-import studio.king220l.yamusic.CompatInput.MouseButtonInfo;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.IOException;

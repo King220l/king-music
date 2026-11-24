@@ -5,7 +5,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
-import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.Util;
@@ -133,8 +133,7 @@ final class LyricsPanel extends AbstractWidget {
     }
 
     @Override
-    public void onClick(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+    public void onClick(MouseButtonEvent event, boolean twice) {
         var track = mod.player.track();
         if (track == null || mod.follows() || !mod.player.canSeek() || shown == null || shown != addon.data()) return;
         int y = (int) event.y() - getY();

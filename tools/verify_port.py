@@ -8,8 +8,8 @@ import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
 ARTIFACTS = {
-    'yamusic': ROOT / 'build/libs/King-Music-0.5.16-Fabric-1.21.8.jar',
-    'king_music_lyrics': ROOT / 'lyrics/build/libs/King-Music-Lyrics-0.1.5-Fabric-1.21.8.jar',
+    'yamusic': ROOT / 'build/libs/King-Music-0.5.16-Fabric-1.21.9.jar',
+    'king_music_lyrics': ROOT / 'lyrics/build/libs/King-Music-Lyrics-0.1.5-Fabric-1.21.9.jar',
 }
 
 def classes(archive):
@@ -32,7 +32,7 @@ def verify():
             assert archive.testzip() is None, f'Corrupt archive: {path}'
             metadata = json.loads(archive.read('fabric.mod.json'))
             assert metadata['id'] == mod_id
-            assert metadata['depends']['minecraft'] == '=1.21.8'
+            assert metadata['depends']['minecraft'] == '=1.21.9'
             assert metadata['depends']['java'] == '>=21'
             assert metadata['environment'] == 'client'
             assert metadata['icon'] in archive.namelist()
@@ -43,8 +43,8 @@ def verify():
                 assert mixins['compatibilityLevel'] == 'JAVA_21'
                 refmap = json.loads(archive.read(mixins['refmap']))
                 assert len(refmap['mappings']) == 2
-                assert any('method_1466(JIIII)V' in str(v) for v in refmap['mappings'].values())
-                assert any('method_1601(JIII)V' in str(v) for v in refmap['mappings'].values())
+                assert any('method_1466(JILnet/minecraft/class_11908;)V' in str(v) for v in refmap['mappings'].values())
+                assert any('method_1601(JLnet/minecraft/class_11910;I)V' in str(v) for v in refmap['mappings'].values())
                 assert any('jlayer' in item['file'] for item in metadata['jars'])
         digest = hashlib.sha256(path.read_bytes()).hexdigest()
         lines.append(f'{digest}  {path.name}\n')

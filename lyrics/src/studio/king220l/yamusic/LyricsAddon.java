@@ -34,7 +34,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
     private String status = "";
 
     @Override
-    public void initialize(MusicMod mod, String category) {
+    public void initialize(MusicMod mod, KeyMapping.Category category) {
         this.mod = mod;
         settings = LyricsSettings.load(FabricLoader.getInstance().getConfigDir().resolve("yamusic/lyrics.json"));
         hud = new LyricsHud(settings);

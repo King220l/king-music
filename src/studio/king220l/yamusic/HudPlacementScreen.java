@@ -3,7 +3,7 @@ package studio.king220l.yamusic;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
-import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -130,9 +130,8 @@ abstract class HudPlacementScreen extends MusicScreen {
     private static int free(int screen, int card) { return Math.max(0, screen - card - MARGIN * 2); }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
-        if (super.mouseClicked(event.x(), event.y(), event.button())) return true;
+    public boolean mouseClicked(MouseButtonEvent event, boolean twice) {
+        if (super.mouseClicked(event, twice)) return true;
         if (event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return false;
         if (toolbar.contains(event.x(), event.y())) {
             if (event.y() < toolbar.y() + FIRST_SLIDER) startDrag(Drag.TOOLBAR, toolbar, event);
@@ -161,9 +160,8 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double x, double y) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
-        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseDragged(event.x(), event.y(), event.button(), x, y);
+    public boolean mouseDragged(MouseButtonEvent event, double x, double y) {
+        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseDragged(event, x, y);
         if (drag == Drag.TOOLBAR) {
             moveToolbar(event.x() - dx, event.y() - dy);
             return true;
@@ -175,9 +173,8 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
-        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseReleased(event.x(), event.y(), event.button());
+    public boolean mouseReleased(MouseButtonEvent event) {
+        if (drag == Drag.NONE || event.button() != GLFW.GLFW_MOUSE_BUTTON_LEFT) return super.mouseReleased(event);
         if (drag == Drag.HUD) save();
         drag = Drag.NONE;
         return true;

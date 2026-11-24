@@ -57,7 +57,7 @@ public final class PortSmokeTest implements ClientModInitializer {
                 if (name.startsWith("editor")) checkTextPixels(client, MultiLineEditBox.class, "scale", 2, image);
                 Path directory = client.gameDirectory.toPath().resolve("screenshots");
                 Files.createDirectories(directory);
-                image.writeToFile(directory.resolve("king-music-1.21.8-" + name + ".png"));
+                image.writeToFile(directory.resolve("king-music-1.21.9-" + name + ".png"));
                 pendingAdvance = after;
             } catch (Throwable failure) {
                 finished = true;
@@ -95,6 +95,28 @@ public final class PortSmokeTest implements ClientModInitializer {
         } catch (ReflectiveOperationException error) { throw new AssertionError(error); }
     }
 
+    private void exercisePlayerInput(Minecraft client) throws ReflectiveOperationException {
+        var screen = (MusicUi.PlayerScreen) client.screen;
+        var playField = screen.getClass().getDeclaredField("play");
+        var scaleField = screen.getClass().getDeclaredField("interfaceScale");
+        playField.setAccessible(true);
+        scaleField.setAccessible(true);
+        var play = (MusicUi.Control) playField.get(screen);
+        float scale = ((Number) scaleField.get(screen)).floatValue();
+        var click = new net.minecraft.client.input.MouseButtonEvent(
+            (play.getX() + play.getWidth() / 2.0) * scale,
+            (play.getY() + play.getHeight() / 2.0) * scale,
+            new net.minecraft.client.input.MouseButtonInfo(GLFW.GLFW_MOUSE_BUTTON_LEFT, 0));
+        check(screen.mouseClicked(click, false), "New mouse event reaches the scaled play control");
+        check(!mod.player.paused(), "Scaled mouse click resumes playback");
+        screen.mouseReleased(click);
+        screen.setFocused(play);
+        play.setFocused(true);
+        check(screen.keyPressed(new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_SPACE, 0, 0)),
+            "New key event reaches the focused play control");
+        check(mod.player.paused(), "Space activates the focused play control");
+    }
+
     private void tick(Minecraft client) {
         if (!started || finished) return;
         tick++;
@@ -124,9 +146,9 @@ public final class PortSmokeTest implements ClientModInitializer {
                             "Fresh production trust verified online without cached signature");
                     }
                 }
-                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.8 title layout");
-                check(MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
-                    new CompatInput.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
+                check(title.children().stream().noneMatch(MusicUi.TitleIcon.class::isInstance), "No mod button added to the 1.21.9 title layout");
+                check(MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
+                    new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 shortcut handled");
                 check(client.screen instanceof MusicUi.PlayerScreen, "F8 opens the player");
                 var tracks = LocalMusic.scan(Path.of(mod.settings.localFolder));
                 check(tracks.size() >= 2, "Synthetic local music scanned");
@@ -145,6 +167,7 @@ public final class PortSmokeTest implements ClientModInitializer {
             } else if (stage == 3 && ready()) {
                 if (!mod.player.started()) return;
                 check(mod.player.paused() && Math.abs(mod.player.elapsedMs() - 20000) < 500, "Seek preserves paused state and reaches target");
+                exercisePlayerInput(client);
                 mod.player.setPaused(false);
                 ((MusicUi.PlayerScreen) client.screen).showLyrics();
                 next();
@@ -159,8 +182,13 @@ public final class PortSmokeTest implements ClientModInitializer {
                 var edit = (MultiLineEditBox) client.screen.children().stream().filter(MultiLineEditBox.class::isInstance).findFirst().orElseThrow();
                 edit.setValue("Integration editor test\nРусский текст\nThird line");
                 check(edit.getValue().contains("Русский"), "Multi-line editor accepts Unicode text");
+                client.screen.setFocused(edit);
+                edit.setFocused(true);
+                check(client.screen.charTyped(new net.minecraft.client.input.CharacterEvent('Ж', 0)),
+                    "New character event reaches the lyrics editor");
+                check(edit.getValue().contains("Ж"), "Character event inserts Unicode text");
                 edit.setValue("line\n".repeat(LyricsData.MAX_LINES + 2));
-                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.8");
+                check(edit.getValue().lines().count() == LyricsData.MAX_LINES, "Editor enforces the lyrics line limit on 1.21.9");
                 edit.setValue(((LyricsAddon) mod.lyrics).data().plain());
                 shot(client, "editor", () -> { mod.settings.uiScale = 50; mod.lyrics.edit(title); next(); });
             } else if (stage == 6 && ready()) {
@@ -217,11 +245,11 @@ public final class PortSmokeTest implements ClientModInitializer {
                 check(clear, "All mini-player controls stay clear of vanilla pause-menu buttons");
                 shot(client, "pause-mini-player", () -> {
                 client.setScreen(null);
-                check(MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
-                    new CompatInput.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 opens the player from the world");
+                check(MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
+                    new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0)), "F8 opens the player from the world");
                 check(client.screen instanceof MusicUi.PlayerScreen, "In-world player screen opens");
-                MusicMod.handleKey(client.getWindow().getWindow(), GLFW.GLFW_PRESS,
-                    new CompatInput.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0));
+                MusicMod.handleKey(client.getWindow().handle(), GLFW.GLFW_PRESS,
+                    new net.minecraft.client.input.KeyEvent(GLFW.GLFW_KEY_F8, 0, 0));
                 check(client.screen == null, "F8 returns to the world");
                 MusicApi.Track mp3;
                 try { mp3 = LocalMusic.scan(Path.of(mod.settings.localFolder)).stream()
@@ -251,7 +279,7 @@ public final class PortSmokeTest implements ClientModInitializer {
     }
 
     private void finish(Minecraft client) throws java.io.IOException {
-        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.8 / Core + Lyrics"
+        Files.writeString(REPORT, "PASS: Java 21 / Fabric 1.21.9 / Core + Lyrics"
             + (Boolean.getBoolean("kingmusic.smoke.world") ? " / world HUDs and pause menu" : "") + "\n");
         MusicMod.LOG.info("SMOKE COMPLETE");
         finished = true;

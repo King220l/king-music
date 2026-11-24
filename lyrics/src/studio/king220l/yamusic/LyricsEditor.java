@@ -5,8 +5,8 @@ import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
-import studio.king220l.yamusic.CompatInput.KeyEvent;
-import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.network.chat.Component;
 import org.lwjgl.glfw.GLFW;
 
@@ -359,17 +359,14 @@ final class LyricsEditor extends MusicScreen {
     public void mouseMoved(double x, double y) { super.mouseMoved(x / scale, y / scale); }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button); return super.mouseClicked(scaled(event).x(), scaled(event).y(), scaled(event).button()); }
+    public boolean mouseClicked(MouseButtonEvent event, boolean twice) { return super.mouseClicked(scaled(event), twice); }
 
     @Override
-    public boolean mouseReleased(double mouseX, double mouseY, int button) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button); return super.mouseReleased(scaled(event).x(), scaled(event).y(), scaled(event).button()); }
+    public boolean mouseReleased(MouseButtonEvent event) { return super.mouseReleased(scaled(event)); }
 
     @Override
-    public boolean mouseDragged(double mouseX, double mouseY, int button, double x, double y) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
-        return super.mouseDragged(scaled(event).x(), scaled(event).y(), scaled(event).button(), x / scale, y / scale);
+    public boolean mouseDragged(MouseButtonEvent event, double x, double y) {
+        return super.mouseDragged(scaled(event), x / scale, y / scale);
     }
 
     @Override
@@ -444,8 +441,7 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        public void onClick(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+        public void onClick(MouseButtonEvent event, boolean twice) {
             if (!active) return;
             long start = timestamp();
             wasFine = event.hasShiftDown();
@@ -456,8 +452,7 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        protected void onDrag(double mouseX, double mouseY, double dx, double dy) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+        protected void onDrag(MouseButtonEvent event, double dx, double dy) {
             if (!dragging || !active) return;
             boolean fine = event.hasShiftDown();
             if (fine) pendingTime = Math.clamp(pendingTime + Math.round((event.x() - lastX) * 10), 0, mod.player.durationMs());
@@ -467,8 +462,7 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        public void onRelease(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+        public void onRelease(MouseButtonEvent event) {
             if (!dragging) return;
             dragging = false;
             if (!active || !canMark()) return;
@@ -477,8 +471,7 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
+        public boolean keyPressed(KeyEvent event) {
             if (!active || !isFocused() || event.key() != GLFW.GLFW_KEY_LEFT && event.key() != GLFW.GLFW_KEY_RIGHT) return false;
             int step = (event.hasShiftDown() ? 100 : 10) * (event.key() == GLFW.GLFW_KEY_LEFT ? -1 : 1);
             setCue(selected, Math.clamp(timestamp() + step, 0, mod.player.durationMs()));

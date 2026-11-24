@@ -11,8 +11,8 @@ import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.options.controls.KeyBindsScreen;
-import studio.king220l.yamusic.CompatInput.KeyEvent;
-import studio.king220l.yamusic.CompatInput.MouseButtonEvent;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.network.chat.Component;
@@ -83,16 +83,14 @@ final class MusicUi {
         }
 
         @Override
-        public void onClick(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+        public void onClick(MouseButtonEvent event, boolean twice) {
             held = true;
             pulse();
             action.run();
         }
 
         @Override
-        public void onRelease(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0); held = false; }
+        public void onRelease(MouseButtonEvent event) { held = false; }
 
         @Override
         public void playDownSound(SoundManager sounds) {
@@ -102,8 +100,7 @@ final class MusicUi {
         }
 
         @Override
-        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
+        public boolean keyPressed(KeyEvent event) {
             if (!active || !visible || !event.isSelection()) return false;
             playDownSound(Minecraft.getInstance().getSoundManager());
             pulse();
@@ -124,7 +121,7 @@ final class MusicUi {
             if (held) {
                 var client = Minecraft.getInstance();
                 held = client.isWindowActive()
-                    && GLFW.glfwGetMouseButton(client.getWindow().getWindow(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
+                    && GLFW.glfwGetMouseButton(client.getWindow().handle(), GLFW.GLFW_MOUSE_BUTTON_LEFT) == GLFW.GLFW_PRESS;
             }
             hover = approach(hover, active && (isHovered() || keyboardFocus()) ? 1 : 0, ms / 125);
             press = approach(press, active && (held && isHovered() || now < pulseUntil) ? 1 : 0, ms / 78);
@@ -244,26 +241,23 @@ final class MusicUi {
         }
 
         @Override
-        public void onClick(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
+        public void onClick(MouseButtonEvent event, boolean twice) {
             if (!player.canSeek()) return;
             draggingTrack = player.track();
             dragged = false;
-            super.onClick(mouseX, mouseY);
+            super.onClick(event, twice);
         }
 
         @Override
-        public void onRelease(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
-            super.onRelease(mouseX, mouseY);
+        public void onRelease(MouseButtonEvent event) {
+            super.onRelease(event);
             if (!locked && dragged && draggingTrack != null) player.seek(draggingTrack, position());
             draggingTrack = null;
             sync();
         }
 
         @Override
-        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
+        public boolean keyPressed(KeyEvent event) {
             if (!isFocused() || !active) return false;
             int key = event.key();
             if (key != GLFW.GLFW_KEY_LEFT && key != GLFW.GLFW_KEY_RIGHT) return false;
@@ -505,9 +499,8 @@ final class MusicUi {
         }
 
         @Override
-        public void onRelease(double mouseX, double mouseY) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, 0);
-            super.onRelease(mouseX, mouseY);
+        public void onRelease(MouseButtonEvent event) {
+            super.onRelease(event);
             flush();
         }
 
@@ -518,8 +511,7 @@ final class MusicUi {
         }
 
         @Override
-        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
+        public boolean keyPressed(KeyEvent event) {
             if (fineSteps && active && isFocused()
                     && (event.key() == GLFW.GLFW_KEY_LEFT || event.key() == GLFW.GLFW_KEY_RIGHT)) {
                 int step = event.key() == GLFW.GLFW_KEY_LEFT ? -1 : 1;
@@ -529,7 +521,7 @@ final class MusicUi {
                 flush();
                 return true;
             }
-            boolean handled = super.keyPressed(keyCode, scanCode, modifiers);
+            boolean handled = super.keyPressed(event);
             if (handled) flush();
             return handled;
         }
@@ -1310,7 +1302,7 @@ final class MusicUi {
                 tokenInput.setMaxLength(8192);
                 tokenInput.setValue(tokenDraft);
                 tokenInput.setResponder(value -> tokenDraft = value);
-                tokenInput.setFormatter((value, cursor) -> net.minecraft.util.FormattedCharSequence.forward(
+                tokenInput.addFormatter((value, cursor) -> net.minecraft.util.FormattedCharSequence.forward(
                     tokenVisible ? value : "•".repeat(value.length()), net.minecraft.network.chat.Style.EMPTY));
                 icon(new Rect(field.right() + 4, fieldY, showWidth, 22),
                     tokenVisible ? "Скрыть токен" : "Показать токен", tokenVisible ? Icon.CLOSE : Icon.USER,
@@ -1719,14 +1711,13 @@ final class MusicUi {
         }
 
         @Override
-        public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
-            KeyEvent event = new KeyEvent(keyCode, scanCode, modifiers);
+        public boolean keyPressed(KeyEvent event) {
             if (typing() && (event.key() == GLFW.GLFW_KEY_ENTER || event.key() == GLFW.GLFW_KEY_KP_ENTER)) {
                 setFocused(null);
                 if (tab == Tab.SEARCH) submit(0, query);
                 return true;
             }
-            return super.keyPressed(keyCode, scanCode, modifiers);
+            return super.keyPressed(event);
         }
 
         @Override
@@ -1739,21 +1730,18 @@ final class MusicUi {
         }
 
         @Override
-        public boolean mouseClicked(double mouseX, double mouseY, int button) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
-            return super.mouseClicked(layoutEvent(event).x(), layoutEvent(event).y(), layoutEvent(event).button());
+        public boolean mouseClicked(MouseButtonEvent event, boolean twice) {
+            return super.mouseClicked(layoutEvent(event), twice);
         }
 
         @Override
-        public boolean mouseReleased(double mouseX, double mouseY, int button) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
-            return super.mouseReleased(layoutEvent(event).x(), layoutEvent(event).y(), layoutEvent(event).button());
+        public boolean mouseReleased(MouseButtonEvent event) {
+            return super.mouseReleased(layoutEvent(event));
         }
 
         @Override
-        public boolean mouseDragged(double mouseX, double mouseY, int button, double x, double y) {
-            MouseButtonEvent event = CompatInput.mouse(mouseX, mouseY, button);
-            return super.mouseDragged(layoutEvent(event).x(), layoutEvent(event).y(), layoutEvent(event).button(), x / interfaceScale, y / interfaceScale);
+        public boolean mouseDragged(MouseButtonEvent event, double x, double y) {
+            return super.mouseDragged(layoutEvent(event), x / interfaceScale, y / interfaceScale);
         }
 
         @Override
