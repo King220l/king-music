@@ -17,14 +17,16 @@ actual 1.21.10 mappings. The title-menu button remains removed; F8 opens the pla
 
 Build and 25 logic checks passed (18 Wave, 7 LRC/PCM/HTTP). All 35 development
 assertions passed: audio, seek/pause, lyrics editing and limits, scaled text,
-world HUDs and pause-menu positioning. Six new assertions exercise actual
+world HUDs and pause-menu positioning. Six input assertions exercise actual
 scaled mouse clicks, Space key activation and Unicode character events.
 Player/Lyrics and 50% editor screenshots were visually inspected.
 
 Both candidate JARs pass ZIP integrity, exact MC metadata, Java 21 class-version
 and the new remapped input-mixin descriptor checks. Their hashes were signed
-using the existing local key without exporting it. Production-JAR and fresh
-online verification are pending; no release has been published yet.
+using the existing local key without exporting it. All 37 assertions passed
+in ordinary Fabric with the actual JARs, including fresh online authenticity
+without cached signatures. Production Lyrics screenshots were visually checked.
+Uploaded release assets are downloaded and compared byte-for-byte.
 
 ## Reproduce
 
