@@ -1,7 +1,7 @@
 package studio.king220l.yamusic;
 
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 
 import java.util.List;
@@ -134,7 +134,7 @@ final class LyricsOptions {
         }
 
         @Override
-        void drawPreview(GuiGraphics g) { hud.draw(g, font, previewBounds()); }
+        void drawPreview(GuiGraphicsExtractor g) { hud.draw(g, font, previewBounds()); }
 
         @Override void movePreview(double x, double y) {
             settings.x = x;

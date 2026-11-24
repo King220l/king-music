@@ -2,7 +2,7 @@ package studio.king220l.yamusic;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -55,7 +55,7 @@ final class LyricsPanel extends AbstractWidget {
     }
 
     @Override
-    protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
+    protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
         Font font = Minecraft.getInstance().font;
         int x = getX(), y = getY();
         outline(g, x, y, width, height, 8, BORDER, RAIL);
@@ -103,7 +103,7 @@ final class LyricsPanel extends AbstractWidget {
             for (var words : row.words) {
                 int pixels = font.width(words);
                 int left = x + (width - lineWidth) / 2 + appearance.alignment.inset(lineWidth, pixels);
-                g.drawString(font, words, left, wordY, color, false);
+                g.text(font, words, left, wordY, color, false);
                 if (current && appearance.emphasis == LyricsSettings.Emphasis.UNDERLINE && pixels > 0)
                     g.fill(left, wordY + 10, left + pixels, wordY + 11, ACCENT);
                 wordY += LINE_HEIGHT;

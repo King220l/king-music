@@ -14,8 +14,9 @@ import com.mojang.blaze3d.platform.InputConstants;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLifecycleEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import net.fabricmc.loader.api.FabricLoader;
@@ -79,7 +80,7 @@ public final class MusicMod implements ClientModInitializer {
             ClientTickEvents.END_CLIENT_TICK.register(extension::tick);
         }
         KeyMapping.Category category = KeyMapping.Category.register(id("controls"));
-        openKey = KeyBindingHelper.registerKeyBinding(new KeyMapping("key.yamusic.open", GLFW.GLFW_KEY_F8, category));
+        openKey = KeyMappingHelper.registerKeyMapping(new KeyMapping("key.yamusic.open", GLFW.GLFW_KEY_F8, category));
         lyrics = FabricLoader.getInstance().getEntrypoints("king_music_lyrics", MusicLyricsExtension.class)
             .stream().findFirst().orElse(null);
         if (lyrics != null) {
@@ -99,7 +100,7 @@ public final class MusicMod implements ClientModInitializer {
         ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
             if (screen instanceof PauseScreen && settings.miniPlayer) addMiniPlayer(screen, w, h);
         });
-        HudRenderCallback.EVENT.register(
+        HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, id("track"),
             (graphics, delta) -> {
                 Minecraft minecraft = Minecraft.getInstance();
                 if (minecraft.level == null || minecraft.screen != null || !player.started()
@@ -180,7 +181,7 @@ public final class MusicMod implements ClientModInitializer {
     }
 
     boolean matchesOpenKey(MusicShortcuts.Binding chord) {
-        InputConstants.Key key = KeyBindingHelper.getBoundKeyOf(openKey);
+        InputConstants.Key key = KeyMappingHelper.getBoundKeyOf(openKey);
         InputConstants.Type type = chord.mouse() ? InputConstants.Type.MOUSE : InputConstants.Type.KEYSYM;
         return chord.modifiers() == 0 && key.getType() == type
             && chord.key() == key.getValue();
@@ -205,7 +206,7 @@ public final class MusicMod implements ClientModInitializer {
     }
 
     private void addMiniPlayer(Screen screen, int width, int height) {
-        List<AbstractWidget> widgets = Screens.getButtons(screen);
+        List<AbstractWidget> widgets = Screens.getWidgets(screen);
         int cardWidth = Math.min(172, width - 16);
         if (cardWidth < 104 || height < 65) return;
         int centered = (width - cardWidth) / 2;
@@ -229,7 +230,7 @@ public final class MusicMod implements ClientModInitializer {
                 play.hint("Воспроизвести / пауза");
                 next.hint("Следующий трек");
                 widgets.addAll(List.of(label, prev, play, next));
-                ScreenEvents.beforeRender(screen).register((ignored, graphics, mx, my, tick) -> {
+                ScreenEvents.beforeExtract(screen).register((ignored, graphics, mx, my, tick) -> {
                     label.setLabel(player.track() == null ? NAME : player.track().title());
                     prev.active = player.hasPrevious() && !follows();
                     play.active = !follows();

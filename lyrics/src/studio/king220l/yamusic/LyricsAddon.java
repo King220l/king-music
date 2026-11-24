@@ -9,8 +9,9 @@
 package studio.king220l.yamusic;
 
 import java.util.List;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
-import net.fabricmc.fabric.api.client.rendering.v1.HudRenderCallback;
+import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.HudElementRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
@@ -38,9 +39,9 @@ public final class LyricsAddon implements MusicLyricsExtension {
         this.mod = mod;
         settings = LyricsSettings.load(FabricLoader.getInstance().getConfigDir().resolve("yamusic/lyrics.json"));
         hud = new LyricsHud(settings);
-        toggle = KeyBindingHelper.registerKeyBinding(new KeyMapping(
+        toggle = KeyMappingHelper.registerKeyMapping(new KeyMapping(
             "key.king_music_lyrics.toggle", GLFW.GLFW_KEY_UNKNOWN, category));
-        HudRenderCallback.EVENT.register(
+        HudElementRegistry.attachElementAfter(VanillaHudElements.HOTBAR, Identifier.fromNamespaceAndPath("king_music_lyrics", "lyrics"),
             (graphics, time) -> {
                 var game = Minecraft.getInstance();
                 if (!settings.hud || game.level == null || game.screen != null || !mod.player.started()) return;
@@ -184,7 +185,7 @@ public final class LyricsAddon implements MusicLyricsExtension {
     }
 
     private static boolean matches(KeyMapping mapping, MusicShortcuts.Binding key) {
-        var bound = KeyBindingHelper.getBoundKeyOf(mapping);
+        var bound = KeyMappingHelper.getBoundKeyOf(mapping);
         return !mapping.isUnbound() && bound.getValue() == key.key()
             && bound.getType() == (key.mouse() ? com.mojang.blaze3d.platform.InputConstants.Type.MOUSE
                 : com.mojang.blaze3d.platform.InputConstants.Type.KEYSYM);

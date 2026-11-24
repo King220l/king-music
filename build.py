@@ -1,4 +1,4 @@
-"""Build the Fabric 1.21.1 branch. Requires JAVA_HOME pointing to JDK 21."""
+"""Build the Fabric 26.1 branch. Requires JAVA_HOME pointing to JDK 25."""
 import os
 from pathlib import Path
 import subprocess

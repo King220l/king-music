@@ -1,6 +1,6 @@
 package studio.king220l.yamusic;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -32,7 +32,7 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     abstract Rect previewBounds();
-    abstract void drawPreview(GuiGraphics g);
+    abstract void drawPreview(GuiGraphicsExtractor g);
     abstract void movePreview(double x, double y);
     abstract void resetPosition();
     abstract int sizePercent();
@@ -186,7 +186,7 @@ abstract class HudPlacementScreen extends MusicScreen {
         super.onClose();
     }
 
-    private boolean drawGrid(GuiGraphics g, Rect preview) {
+    private boolean drawGrid(GuiGraphicsExtractor g, Rect preview) {
         boolean snapped = false;
         for (int y = 0; y < 3; y++) {
             for (int x = 0; x < 3; x++) {
@@ -208,8 +208,8 @@ abstract class HudPlacementScreen extends MusicScreen {
     }
 
     @Override
-    public final void render(GuiGraphics g, int mx, int my, float dt) {
-        renderBackground(g, mx, my, dt);
+    public final void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        extractBackground(g, mx, my, dt);
         Rect preview = previewBounds();
         boolean snapped = drawGrid(g, preview);
         drawPreview(g);
@@ -233,6 +233,6 @@ abstract class HudPlacementScreen extends MusicScreen {
             option.icon.draw(g, toolbar.x() + 10, y, MUTED);
             text(g, font, option.label, toolbar.x() + 25, y, TEXT, Type.BODY, Math.min(111, toolbar.w() / 2) - 28);
         }
-        super.render(g, mx, my, dt);
+        super.extractRenderState(g, mx, my, dt);
     }
 }

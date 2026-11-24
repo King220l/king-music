@@ -1,7 +1,7 @@
 package studio.king220l.yamusic;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FontDescription;
@@ -103,7 +103,7 @@ final class MusicTheme {
             }
         }
 
-        void draw(GuiGraphics g, int x, int y, int color) {
+        void draw(GuiGraphicsExtractor g, int x, int y, int color) {
             for (int row = 0; row < spans.length; row++) {
                 int[] line = spans[row];
                 for (int i = 0; i < line.length; i += 2) {
@@ -124,7 +124,7 @@ final class MusicTheme {
         return font.width(styled(value, type));
     }
 
-    static void text(GuiGraphics g, Font font, String value, int x, int y, int color, Type type, int available) {
+    static void text(GuiGraphicsExtractor g, Font font, String value, int x, int y, int color, Type type, int available) {
         if (available <= 0 || value.isEmpty()) return;
         Component line = styled(value, type);
         if (font.width(line) > available) {
@@ -134,10 +134,10 @@ final class MusicTheme {
             line = Component.empty().append(font.substrByWidth(line, limit).getString())
                 .append("…").withStyle(style -> style.withFont(type.font));
         }
-        g.drawString(font, line, x, y, color, false);
+        g.text(font, line, x, y, color, false);
     }
 
-    static void rounded(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
+    static void rounded(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
         if (w <= 0 || h <= 0) return;
         int r = Math.min(radius, Math.min(w, h) / 2);
         if (h > r * 2) g.fill(x, y + r, x + w, y + h - r, color);
@@ -169,7 +169,7 @@ final class MusicTheme {
         return corners;
     }
 
-    static void maskCorners(GuiGraphics g, int x, int y, int w, int h, int radius, int color) {
+    static void maskCorners(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int color) {
         for (int row = 0; row < radius; row++) {
             int inset = cornerInset(radius, row);
             if (inset == 0) continue;
@@ -180,16 +180,16 @@ final class MusicTheme {
         }
     }
 
-    static void outline(GuiGraphics g, int x, int y, int w, int h, int radius, int rim, int fill) {
+    static void outline(GuiGraphicsExtractor g, int x, int y, int w, int h, int radius, int rim, int fill) {
         rounded(g, x, y, w, h, radius, rim);
         rounded(g, x + 1, y + 1, w - 2, h - 2, Math.max(0, radius - 1), fill);
     }
 
-    static void emblem(GuiGraphics g, int x, int y, int size) {
+    static void emblem(GuiGraphicsExtractor g, int x, int y, int size) {
         g.blit(RenderPipelines.GUI_TEXTURED, EMBLEM, x, y, 0f, 0f, size, size, 128, 128, 128, 128);
     }
 
-    static void drawRecord(GuiGraphics g, int x, int y, int size, long positionMs) {
+    static void drawRecord(GuiGraphicsExtractor g, int x, int y, int size, long positionMs) {
         long cycle = positionMs % 2600L;
         if (cycle == 0) {
             emblem(g, x, y, size);

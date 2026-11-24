@@ -1,14 +1,14 @@
 package studio.king220l.yamusic;
 
 import org.joml.Matrix3x2fStack;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 
 /** Fluent 2D operations backed by the Minecraft 1.21.6 GUI matrix stack. */
 final class CompatPose {
     private final Matrix3x2fStack stack;
     private CompatPose(Matrix3x2fStack stack) { this.stack = stack; }
-    static CompatPose of(GuiGraphics graphics) { return new CompatPose(graphics.pose()); }
-    static void scissor(GuiGraphics graphics, int left, int top, int right, int bottom) {
+    static CompatPose of(GuiGraphicsExtractor graphics) { return new CompatPose(graphics.pose()); }
+    static void scissor(GuiGraphicsExtractor graphics, int left, int top, int right, int bottom) {
         graphics.enableScissor(left, top, right, bottom);
     }
     CompatPose pushMatrix() { stack.pushMatrix(); return this; }

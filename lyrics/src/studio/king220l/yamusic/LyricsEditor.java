@@ -1,6 +1,6 @@
 package studio.king220l.yamusic;
 
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.MultiLineEditBox;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
@@ -379,8 +379,8 @@ final class LyricsEditor extends MusicScreen {
     }
 
     @Override
-    public void render(GuiGraphics g, int mx, int my, float dt) {
-        renderBackground(g, mx, my, dt);
+    public void extractRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
+        extractBackground(g, mx, my, dt);
         CompatPose.of(g).pushMatrix().scale(scale);
         outline(g, box.x(), box.y(), box.w(), box.h(), 10, BORDER, BASE);
         text(g, font, "Редактор текста", box.x() + 39, box.y() + 14, TEXT, Type.STRONG, box.w() - 154);
@@ -414,7 +414,7 @@ final class LyricsEditor extends MusicScreen {
         }
         text(g, font, help, body.x(), body.bottom() + 37, MUTED, Type.BODY, body.w());
         text(g, font, "Скорость", body.x(), box.bottom() - 53, MUTED, Type.BODY, 47);
-        super.render(g, (int) (mx / scale), (int) (my / scale), dt);
+        super.extractRenderState(g, (int) (mx / scale), (int) (my / scale), dt);
         CompatPose.of(g).popMatrix();
     }
 
@@ -481,7 +481,7 @@ final class LyricsEditor extends MusicScreen {
         }
 
         @Override
-        protected void renderWidget(GuiGraphics g, int mx, int my, float dt) {
+        protected void extractWidgetRenderState(GuiGraphicsExtractor g, int mx, int my, float dt) {
             if (!active) return;
             long stamp = timestamp();
             int x = getX() + 4 + (int) Math.round((getWidth() - 8) * (double) stamp / mod.player.durationMs());

@@ -1,7 +1,7 @@
 package studio.king220l.yamusic;
 
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import studio.king220l.yamusic.CompatColor;
 import net.minecraft.util.FormattedCharSequence;
 
@@ -70,7 +70,7 @@ final class LyricsHud {
             Math.round(cardHeight * scale), settings.x, settings.y);
     }
 
-    void draw(GuiGraphics g, Font font, Rect box) {
+    void draw(GuiGraphicsExtractor g, Font font, Rect box) {
         if (box.w() < 1 || box.h() < 1) return;
         var pose = CompatPose.of(g);
         pose.pushMatrix().translate(box.x(), box.y()).scale(box.w() / (float) WIDTH, box.h() / (float) height());
@@ -91,12 +91,12 @@ final class LyricsHud {
             };
             var words = caption.words;
             if (outlined) {
-                g.drawString(font, words, x - 1, y, edge, false);
-                g.drawString(font, words, x + 1, y, edge, false);
-                g.drawString(font, words, x, y - 1, edge, false);
-                g.drawString(font, words, x, y + 1, edge, false);
+                g.text(font, words, x - 1, y, edge, false);
+                g.text(font, words, x + 1, y, edge, false);
+                g.text(font, words, x, y - 1, edge, false);
+                g.text(font, words, x, y + 1, edge, false);
             }
-            g.drawString(font, words, x, y, card ? color : CompatColor.multiplyAlpha(color, opacity), false);
+            g.text(font, words, x, y, card ? color : CompatColor.multiplyAlpha(color, opacity), false);
             if (underline && caption.role == Role.CURRENT && caption.width > 0) {
                 g.fill(x, y + 10, x + caption.width, y + 11, card ? ACCENT : CompatColor.multiplyAlpha(ACCENT, opacity));
             }

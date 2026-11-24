@@ -1,22 +1,20 @@
 plugins {
-    id 'fabric-loom' version '1.14.10'
+    id 'net.fabricmc.fabric-loom' version '1.17.21'
 }
 
 allprojects {
-    apply plugin: 'fabric-loom'
-    loom { mixin { useLegacyMixinAp = true } }
+    apply plugin: 'net.fabricmc.fabric-loom'
     group = 'studio.king220l'
     version = new groovy.json.JsonSlurper().parse(file('resources/fabric.mod.json')).version
     base.archivesName = project == rootProject ? 'King-Music' : "King-Music-${project.name.capitalize()}"
     repositories { mavenCentral() }
     dependencies {
         minecraft "com.mojang:minecraft:${rootProject.minecraft_version}"
-        mappings loom.officialMojangMappings()
-        modImplementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
-        modImplementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_version}"
+        implementation "net.fabricmc:fabric-loader:${rootProject.loader_version}"
+        implementation "net.fabricmc.fabric-api:fabric-api:${rootProject.fabric_version}"
     }
     java {
-        toolchain.languageVersion = JavaLanguageVersion.of(21)
+        toolchain.languageVersion = JavaLanguageVersion.of(25)
         withSourcesJar()
     }
     sourceSets.main {
@@ -25,7 +23,7 @@ allprojects {
     }
     tasks.withType(JavaCompile).configureEach {
         options.encoding = 'UTF-8'
-        options.release = 21
+        options.release = 25
     }
     tasks.withType(AbstractArchiveTask).configureEach {
         preserveFileTimestamps = false
@@ -38,7 +36,7 @@ allprojects {
             from(rootProject.file('resources/assets/yamusic/icon.png')) { into "assets/king_music_${project.name}" }
         }
     }
-    remapJar { archiveFileName = "${base.archivesName.get()}-${project.version}-Fabric-${rootProject.minecraft_version}.jar" }
+    jar { archiveFileName = "${base.archivesName.get()}-${project.version}-Fabric-${rootProject.minecraft_version}.jar" }
 }
 
 dependencies {
@@ -47,11 +45,10 @@ dependencies {
 }
 
 subprojects {
-    dependencies { implementation project(path: ':', configuration: 'namedElements') }
+    dependencies { implementation project(path: ':') }
 }
 
 loom {
-    mixin { defaultRefmapName = 'king-music-refmap.json' }
     runs {
         client {
             runDir 'run'
@@ -62,11 +59,11 @@ loom {
 
 // Run Core and Lyrics together without installing anything into a player's profile.
 dependencies {
-    runtimeOnly files(project(':lyrics').sourceSets.main.output)
+    runtimeOnly files(rootProject.project(':lyrics').sourceSets.main.output)
 }
 loom.mods {
     yamusic { sourceSet sourceSets.main }
-    king_music_lyrics { sourceSet project(':lyrics').sourceSets.main }
+    king_music_lyrics { sourceSet rootProject.project(':lyrics').sourceSets.main }
 }
 
 sourceSets {
@@ -89,13 +86,13 @@ tasks.register('portRegression', JavaExec) {
 check.dependsOn waveRegression, portRegression
 
 if (findProject(':smoke-tests') != null) {
-    project(':smoke-tests') {
+    rootProject.project(':smoke-tests') {
         dependencies {
-            implementation project(path: ':lyrics', configuration: 'namedElements')
+            implementation project(path: ':lyrics')
         }
     }
-    dependencies { runtimeOnly files(project(':smoke-tests').sourceSets.main.output) }
-    loom.mods { king_music_smoke { sourceSet project(':smoke-tests').sourceSets.main } }
+    dependencies { runtimeOnly files(rootProject.project(':smoke-tests').sourceSets.main.output) }
+    loom.mods { king_music_smoke { sourceSet rootProject.project(':smoke-tests').sourceSets.main } }
     if (project.hasProperty('smokeWorld')) loom.runs.client.vmArg '-Dkingmusic.smoke.world=true'
     if (project.hasProperty('smokeInspect')) loom.runs.client.vmArg '-Dkingmusic.smoke.inspect=true'
 }
