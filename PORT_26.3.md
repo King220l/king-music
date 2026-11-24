@@ -27,7 +27,11 @@ editing and limits, visible text at 85% and 50%, next/previous, world HUDs and
 pause-menu control separation. Lyrics and editor screenshots were visually checked.
 Both JARs passed ZIP, metadata, Java 25 bytecode and direct mixin target checks.
 The hashes of exactly two JARs are signed with the existing key without exporting it.
-Production verification with a fresh online signature is pending.
+All 43 production assertions passed with a fresh online VERIFIED signature and
+no cached manifest. Production screenshots of Lyrics and the editor were visually
+inspected. Two initial ordinary starts ended before the smoke suite without a
+crash report; a diagnostic full run passed. A repeat ordinary run then passed all 43 assertions with exit code 0.
+No unsuccessful startup was treated as a passed test.
 
 ## Reproduce
 
