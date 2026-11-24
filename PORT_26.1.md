@@ -30,7 +30,10 @@ control separation. Player/Lyrics and editor screenshots were inspected.
 
 Both JARs pass ZIP, metadata, class-version and official mixin target checks.
 Their hashes were signed with the existing local Ed25519 key without exporting
-it. Production and fresh online authenticity checks are pending; no release yet.
+it. All 37 production assertions passed in ordinary Fabric, including fresh
+online VERIFIED authenticity without cached signatures. Production Lyrics
+screenshots were visually inspected. Release assets are downloaded and compared
+byte-for-byte before publication.
 
 ## Reproduce
 
